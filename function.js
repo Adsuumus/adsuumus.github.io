@@ -68,7 +68,9 @@ function cleanHTML(html) {
     .replace(/<\/?h[1-6]>/gi, "\n\n")
     .replace(/&nbsp;/g, " ")
     .replace(/^\n+|\n+$/g, "")
-    .replace(/\u00AD/g, "");
+    .replace(/\u00AD/g, "")
+    .replace(/\u200b/g, "");
+
 
   final = applyAdditionalFormatting(final);
   final = highlightDashes(final);
