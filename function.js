@@ -69,6 +69,7 @@
           .replace(/\u200b/g, "");
 
         final = applyAdditionalFormatting(final);
+        final = highlightDashes(final);
 
         return final;
       }
