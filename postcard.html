@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Открытка</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #001f3f, #0074d9);
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .snowflake {
+            position: absolute;
+            top: -50px;
+            pointer-events: none;
+            user-select: none;
+            will-change: transform;
+        }
+
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+            z-index: 10;
+            pointer-events: none;
+            text-align: center;
+        }
+
+   
+
+        #curtain {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://email-images.mindbox.ru/TJ/7d079a53-d86c-4a6e-b664-8eb5f85c8acd/cf49b1df-3465-4642-a3f0-e4ead76b609a.png');
+            background-size: 100% 100%;
+            background-position: center;
+            transform: translateY(100%);
+            animation: raiseCurtain 8s ease-out forwards;
+        }
+
+        @keyframes raiseCurtain {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+ 
+    </style>
+</head>
+<body>
+    <div id="message">Юля, с&nbsp;наступающим Новым Годом!<br> <span style="font-size: 2rem; text-align: left; display: block; padding-top: 10px; padding-left: 20px;">Пусть в&nbsp;новом году будет как можно меньше тревог и&nbsp;больше времени на&nbsp;любимые и&nbsp;важные дела. <br> Крепкого тебе здоровья и больше радости в новом году!</span></div>
+
+    <div id="curtain"></div>
+    <script>
+        const snowflakes = [];
+        const snowflakeStates = [];
+        const maxSnowflakes = Math.min(200, window.innerWidth / 4); 
+
+        function createSnowflake() {
+            if (snowflakes.length >= maxSnowflakes) return;
+
+            const snowflake = document.createElement('div');
+            snowflake.className = 'snowflake';
+
+            const img = document.createElement('img');
+            img.src = 'https://emojigraph.org/media/apple/snowflake_2744-fe0f.png';
+            img.style.opacity = 0.5;
+            img.width = Math.random() < 0.5 ? Math.random() * 10 + 10 : Math.random() * 15 + 20;
+            snowflake.appendChild(img);
+
+            const state = {
+                x: Math.random() * window.innerWidth,
+                y: -50,
+                speed: Math.random() * 2 + 1,
+                swing: Math.random() * 2 + 1,
+                phase: Math.random() * Math.PI * 2
+            };
+
+            document.body.appendChild(snowflake);
+            snowflakes.push(snowflake);
+            snowflakeStates.push(state);
+        }
+
+        function animateSnowflakes() {
+            for (let i = snowflakes.length - 1; i >= 0; i--) {
+                const snowflake = snowflakes[i];
+                const state = snowflakeStates[i];
+
+                state.y += state.speed;
+                state.x += Math.sin(state.y / 50 + state.phase) * state.swing;
+
+                snowflake.style.transform = `translate(${state.x}px, ${state.y}px)`;
+
+                if (state.y > window.innerHeight || state.x < -50 || state.x > window.innerWidth + 50) {
+                    snowflake.remove();
+                    snowflakes.splice(i, 1);
+                    snowflakeStates.splice(i, 1);
+                }
+            }
+        }
+
+        function loop() {
+            createSnowflake();
+            animateSnowflakes();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
