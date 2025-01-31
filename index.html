@@ -58,7 +58,7 @@
       #downloadButton {
         display: inline-block;
         font-size: 18px;
-        padding: 10px 20px;
+        padding: 7px 20px;
         color: #ffffff;
         background-color: #2e2ee5;
         border: none;
@@ -74,17 +74,17 @@
         border: none;
         width: calc(100% - 22px);
         box-shadow: 0 2px 5px rgba(188, 184, 184, 0.1);
-        height: 550px;
+        min-height: 550px;
+        max-height: 100%;
         padding: 10px;
         border-radius: 5px;
         background-color: #ffffff;
         margin-top: 20px;
-        overflow-y: auto;
         white-space: pre-wrap;
 
         -webkit-text-stroke: 0.1px currentColor;
-
-        font-size: 18px;
+        font-size: 19px;
+        line-height: 1.3em;
         padding: 10px;
         text-rendering: optimizeLegibility;
         -webkit-font-smoothing: antialiased;
@@ -98,11 +98,6 @@
       @media (max-width: 600px) {
         .radio-button {
           font-size: 14px;
-          padding: 8px 15px;
-        }
-
-        #downloadButton {
-          font-size: 16px;
           padding: 8px 15px;
         }
       }
@@ -129,7 +124,6 @@
       contenteditable="true"
       spellcheck="false"
       autocorrect="off"
-      placeholder="Вставьте текст"
     ></div>
 
     <script>
@@ -143,52 +137,92 @@
         const clipboardData = window.savedDirtyData;
 
         if (clipboardData) {
-          const cleanData = wan(clipboardData);
+          const cleanData = main(clipboardData);
           editableDiv.innerHTML = cleanData;
         }
       }
 
-      function wan(text) {
+      function main(text) {
         text = decodeHtml(text);
 
-        text = replaceSpanWithBold(text);
+        text = saveTags(text);
 
         text = removeTags(text);
-        
+
+        // экранируем содержимое тегов от типографа
+        const tags = [];
+        text = text.replace(/<[^>]*>/g, (match) => {
+          tags.push(match);
+          return `__TAG_${tags.length - 1}__`;
+        });
+
+        // типографика
         text = highlightDashes(text);
 
-        text = applyAdditionalFormatting(text);
+        text = typography(text);
 
         text = formattingDate(text);
-        
-        text = links(text);
 
-        text = verstak(text);
+        // возвращаем содержимое тегов
+        text = text.replace(/__TAG_(\d+)__/g, (match, index) => {
+          return tags[parseInt(index, 10)];
+        });
+
+        text = links(text);
+        text = addPaddingToTags(text);
 
         text = escapeHtml(text);
-        text = wrapPortfolioInRed(text);
+        text = highlight(text);
 
         return text;
       }
 
-      function replaceSpanWithBold(text) {
+      function saveTags(text) {
         const regex =
-          /<span[^>]*style="[^"]*font-weight\s*:\s*700[^"]*"[^>]*>(.*?)<\/span>/g;
+          /<span[^>]*style="[^"]*font-weight:700;[^"]*">(.*?)<\/span>/g;
 
         text = text.replace(regex, (match, content) => {
           return `<b>${content}</b>`;
         });
 
-        const regex2 =
-          /<span[^>]*style="[^"]*font-size\s*:\s*10pt[^"]*"[^>]*>(.*?)<\/span>/g;
-        text = text.replace(regex2, (match, content) => {
-          return `<yo>${content}</yo>`;
+        const quote = /<span[^>]*font-style:italic;[^>]*>(.*?)<\/span>/g;
+
+        text = text.replace(quote, (match, content) => {
+          return `<q1>${content}</q1>`;
         });
+
+        const yellow =
+          /(?<=<a[^>]*?>)<span[^>]*style="[^"]*background-color:#ffff00;[^"]*"[^>]*>(.*?)<\/span>/g;
+
+        text = text.replace(yellow, (match, content) => {
+          return `<yellow>${content}`;
+        });
+
+        const list = /<li[^>]*><p[^>]*>(.*?)<\/p><\/li>/g;
+        text = text.replace(list, (match, content) => {
+          return `<li>${content}</li>`;
+        });
+
+        const test = /<p[^>]*><span[^>]*>\/Карточка:<\/span><\/p>/g;
+        text = text.replace(test, `<isee>Карточка статьи:</isee>`);
+
+        text = text.replace(/<h(\d)[^>]*>/g, `<h$1>`);
+        text = text.replace(/<p[^>]*>/g, `<p>`);
+        text = text.replace(/<li[^>]*>/g, `<li>`);
+        text = text.replace(/<ol[^>]*>/g, `<ol>`);
+        text = text.replace(/<ul[^>]*>/g, `<ul>`);
+
+        text = text.replace(/<h1/g, `<h2`).replace(/<\/h1/g, `</h2`);
+
+        /*       const reg =
+              /<p[^>]*><span[^>]*style="[^"]*color:#666666;[^"]*"[^>]*>(.*?)<\/span><\/p>/g;
+
+              text = text.replace(reg, (match, content) => {
+                return `<reg>${content}</reg>`;
+              }); */
 
         return text;
       }
-
-      function replaceSpanWithLilipooth(text) {}
 
       function escapeHtml(text) {
         const map = {
@@ -207,7 +241,7 @@
         return doc.body.innerHTML;
       }
 
-      function wrapPortfolioInRed(text) {
+      function highlight(text) {
         const regex1 = /(&amp;nbsp;)/g;
         const regex2 = /(&amp;#8288;)/g;
         const regex3 =
@@ -217,8 +251,128 @@
         return text
           .replace(regex1, `<span style="color: #f22b71">$1</span>`)
           .replace(regex2, `<span style="color: #f22b71;">$1</span>`)
-          .replace(regex3, `<span style="color: #A7226E;">$1</span>`)
-          .replace(regex4, `<span style="color: #A7226E;">$1</span>`);
+          .replace(regex3, `<span style="color: #00257d;">$1</span>`)
+          .replace(regex4, `<span style="color: #00257d;">$1</span>`);
+      }
+
+      /*       function addPaddingToTags(inputText) {
+          // Регулярное выражение для поиска нужных тегов: <h1>, <p>, <li>
+          const tagRegex = /<(h1|p|li)([^>]*)>/g;
+
+          // Массив для хранения всех тегов с их индексами
+          let tags = [];
+          let match;
+
+          // Ищем все соответствующие теги в тексте
+          while ((match = tagRegex.exec(inputText)) !== null) {
+              tags.push({
+                  tagName: match[1], // Имя тега
+                  fullTag: match[0], // Полный тег
+                  index: match.index, // Индекс начала тега
+              });
+          }
+
+          // Массив для хранения результата
+          let result = inputText;
+
+          // Пройдем по каждому тегу по порядку
+          tags.forEach((tag, i) => {
+              // Значение pad по умолчанию для каждого тега
+              let padValue = '10';
+
+              // Определяем значение pad в зависимости от следующего тега
+              const nextTag = tags[i + 1]; // Следующий тег
+
+              if (tag.tagName === 'h1') {
+                  if (nextTag?.tagName === 'p') {
+                      padValue = '15'; // Если следующий тег <p>, то pad="15"
+                  } else if (nextTag?.tagName === 'li') {
+                      padValue = '10'; // Если следующий тег <li>, то pad="10"
+                  }
+              } else if (tag.tagName === 'p') {
+                  if (nextTag?.tagName === 'p') {
+                      padValue = '20'; // Если следующий тег <p>, то pad="20"
+                  } else if (nextTag?.tagName === 'li') {
+                      padValue = '10'; // Если следующий тег <li>, то pad="10"
+                  }
+              }
+
+              // Заменяем тег на новый с атрибутом pad
+              const padRegex = new RegExp(`<${tag.tagName}([^>]*)>`);
+              const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(tag.tagName.length + 1)}`;
+
+              // Заменяем старый тег на новый с атрибутом pad
+              result = result.replace(tag.fullTag, newTag);
+          });
+
+          return result;
+      } */
+
+      function addPaddingToTags(inputText) {
+        const tagRegex = /<(h2|p|ul)([^>]*)>/g;
+
+        let tags = [];
+        let match;
+
+        while ((match = tagRegex.exec(inputText)) !== null) {
+          tags.push({
+            tagName: match[1],
+            fullTag: match[0],
+            index: match.index,
+          });
+        }
+
+        let result = inputText;
+
+        tags.forEach((tag, i) => {
+          let padValue = 0;
+
+          const nextTag = tags[i + 1];
+          const prevTag = tags[i - 1];
+
+          if (activeFormat === "tj") {
+            if (tag.tagName === "p") {
+              if (nextTag?.tagName === "p") {
+                padValue = "0,20";
+              } else if (nextTag?.tagName === "ul") {
+                padValue = "0,10";
+              } else {
+                padValue = "0, 0";
+              }
+            } else if (tag.tagName === "h2") {
+              if (nextTag?.tagName === "p") {
+                padValue = "0,20";
+              } else {
+                padValue = "0,0";
+              }
+            }
+          } else if (activeFormat === "bs") {
+            if (tag.tagName === "p") {
+              if (prevTag?.tagName === "p") {
+                padValue = "12,0";
+              } else if (nextTag?.tagName === "ul") {
+                padValue = "12,0";
+              } else {
+                padValue = "12,0";
+              }
+            } else if (tag.tagName === "h2") {
+              if (prevTag?.tagName === "p") {
+                padValue = "48,0";
+              } else {
+                padValue = "0,0";
+              }
+            }
+          }
+
+          // if (padValue !== 0) {
+          const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(
+            tag.tagName.length + 1
+          )}`;
+          result = result.replace(tag.fullTag, newTag);
+          //  }
+        });
+
+        return result;
       }
 
       function posteffect(text) {
@@ -228,13 +382,13 @@
         text = text.replace(
           regexx,
           `
-</image
-  pad="0, 28"
-  href="$1"
-  src="$2"
-  alt="Pic"
-  border="0"
-/>`.trim()
+            </image
+              pad="0, 28"
+              href="$1"
+              src="$2"
+              alt="Pic"
+              border="0"
+            />`.trim()
         );
 
         return text;
@@ -247,71 +401,43 @@
           .replace(/\u00AD/g, "")
           .replace(/\u200b/g, "");
 
-        //сохраняем и экранируем
-        text = text.replace(
-          /<td\b[^>]*\bbackground-color:\s*([^;]+);[^>]*>(.*?)<\/td>/g,
-          '<td background-color="$1">\n\n$2</td2>\n'
-        );
+        const allowedTags = [
+          "a",
+          "b",
+          "li",
+          "ol",
+          "ul",
+          "isee",
+          "q1",
+          "img",
+          "p",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+        ];
 
-        const regex = /<[^>]+>/g;
-
-        text = text.replace(regex, (match) => {
-          if (match.startsWith("<a") || match.startsWith("</a")) {
-            return match;
-          }
-
-          if (match.startsWith("<b>") || match.startsWith("</b>")) {
-            return match;
-          }
-
-          if (match.startsWith("<yo>") || match.startsWith("</yo>")) {
-            return match;
-          }
-
-          if (match.startsWith("<li") || match.startsWith("</li")) {
-            return match.startsWith("<li") ? "<li>" : match;
-          }
-
-          if (match.startsWith("<ol") || match.startsWith("</ol")) {
-            return match.startsWith("<ol") ? "<ol>" : match;
-          }
-          if (match.startsWith("<ul") || match.startsWith("</ul")) {
-            return match.startsWith("<ul") ? "<ul>" : match;
-          }
-
-          if (match.startsWith("<a") || match.startsWith("</a")) {
-            return match;
-          }
-
-          if (match.startsWith("<img")) {
-            return match;
-          }
-
-          if (match.startsWith("<p") || match.startsWith("</p")) {
-            return match.startsWith("<p") ? "<p>" : match;
-          }
-
-          //сохраняем нужные экранированные теги
-          if (
-            match.startsWith("<td background") ||
-            match.startsWith("</td2>")
-          ) {
-            return match;
-          }
-
-          if (/^<h[1-6]/.test(match)) {
-            return `<${match.slice(1, 3)}>`;
-          }
-
-          if (/^<\/h[1-6]>/.test(match)) {
-            return match + "\n\n";
-          }
-
-          return ""; // Удаляем остальные теги
+        text = text.replace(/<\/?([a-zA-Z0-9-]+)[^>]*>/g, (match, tag) => {
+          return allowedTags.includes(tag) ? match : "";
         });
 
-        text = text.replace(/<p><yo>/g, "<yo>\n");
-        text = text.replace(/<\/yo><\/p>/g, "\n</yo>\n\n");
+        const emojiRegex =
+          /([\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{1F900}-\u{1F9FF}\u{2700}-\u{27BF}\u{1F004}-\u{1F0CF}\u{1F170}-\u{1F251}\u{1F004}-\u{1F0CF}\u{2B50}\u{1F004}-\u{1F0CF}])/gu;
+        text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
+
+        text = text.replace(/<\/em><em>/g, "");
+
+        text = text.replace(/<b><em>([\s\S]*?)<\/em>/g, "<em>$1<\/em><b>");
+
+        text = text.replace(/<p><q1>([\s\S]*?)<\/q1><\/p>/g, "<q>$1</q>");
+        text = text.replace(
+          /<p><q1>([\s\S]*?)<\/q1><\/a><\/p>/g,
+          "<q>$1</a></q>"
+        );
+
+        text = text.replace(/<q1>|<\/q1>/g, "");
 
         text = text.replace(
           /<a([^>]*?)\s+href="([^"]+)".*?>/g,
@@ -326,70 +452,80 @@
         );
 
         // работа со списками
-        text = text.replace(/<li><p>/g, "<li>");
-        text = text.replace(/<\/p><\/li>/g, "<\/li>");
-
-        text = text.replace(/<(ul|ol)>/g, "<$1>\n");
-        text = text.replace(/<(\/ul|\/ol)>/g, "\n<$1>\n\n");
-        text = text.replace(/<\/li><li>/g, "<\/li>\n\n<li>");
-
-        text = text.replace(/(<p>)/g, "$1\n");
-
-        text = text.replace(/<\/p>/g, (match, offset, string) => {
-          if (
-            string.slice(offset + match.length, offset + match.length + 5) ===
-            "</td>"
-          ) {
-            return "\n" + match + "\n";
-          } else {
-            return "\n" + match + "\n\n";
-          }
-        });
-
-     /*    const emojiRegex = /\p{Extended_Pictographic}/gu;
-        text = text.replace(emojiRegex, (emoji) => `<em>${emoji}</em>`); */
-
-        //разэкранируем
-        text = text.replace(/(<\/td2>)/g, "<\/td>\n");
+        //text = text.replace(/<(ul|ol)>/g, "<$1>\n");
 
         text = text.replace(
           /<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g,
           '<$1 href="$2">\n$3\n</$1>'
         );
 
-
-        text = text.replace(/(\s)<\/b>/g, "</b>$1");
-
-        // чистим b в ссылках супер-простым методом
+        // чистим b
+        text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
         text = text.replace(/<b><\/b>|\n<\/b>/g, "");
-        text = text.replace(/<\/b><\/a>/g, "</a>");
-        text = text.replace(/(?<=\">)<b>/g, "");
+        text = text.replace(/<\/b>$/, "");
+        text = text.replace(/<b [^>]*>/g, "");
 
-      
+        text = text.replace(/<b> ([\s\S]*?)<\/b>/g, " <b>$1</b>");
+        text = text.replace(/<b>([\s\S]*?) <\/b>/g, "<b>$1</b> ");
+
+        text = text.replace(
+          /(<p>\s*<em>[^<]*<\/em>[\s\S]*?<\/p>\s*){2,}/g,
+          "<el>$&</el>"
+        );
+
+        text = text.replace(/<\/el><el>/g, "");
+        text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
+          return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
+        });
+
+        text = text
+          .replace(
+            /<p><a href="([^"]+)">([^<]*)<\/a><\/p><p>([^<]*)<\/p>((<q>.*?<\/q>\s*)+)/g,
+            '<quote name="$2" desc="$3" href="$1">\n$4</quote>'
+          )
+          .replace(
+            /<p><a href="([^"]+)">([^<]*)<\/a><\/p>((<q>.*?<\/q>\s*)+)/g,
+            '<quote name="$2" href="$1">\n$3</quote>'
+          );
+
+        text = text.replace(/<q>/g, "<p>").replace(/<\/q>/g, "</p>");
+        text = text.replace(/<(p)>/g, "<$1>\n");
+
+        text = text.replace(/<(\/p)>/g, "\n<$1>\n\n");
+        text = text.replace(/<\/p>\s*<\/quote>/g, "</p>\n</quote>");
+        text = text.replace(/<(\/h(\d))>/g, "<$1>\n\n");
+
+        text = text.replace(/<li><em>([^<]*)<\/em>/g, "<em>\n$1\n<\/em>\n<li>");
+        text = text.replace(/<(\/li)>/g, "\n<$1>\n");
+        text = text.replace(/<(li)>/g, "<$1>\n");
+        text = text.replace(/<(el|ul|ol)>/g, "<$1>\n");
+        text = text.replace(/<(\/ul|\/ol|\/el)>/g, "<$1>\n\n");
         return text;
       }
 
       function formattingDate(text) {
         const MONTHS_REGEX =
-          /(^|\s|&nbsp;)(январ[яеь][,.]?|феврал[яеь][,.]?|мар[те][,.]?|апрел[ьяе][,.]?|ма[ейяй][,.]?|июн[ьяе][,.]?|июл[ьяе][,.]?|август[ае][,.]?|сентябр[яеь][,.]?|октябр[яеь][,.]?|ноябр[яеь][,.]?|декабр[яеь][,.]?|понедельник[ау][,.]?|вторник[ау][,.]?|сред[ау][,.]?|четверг[ау][,.]?|пятниц[ауе][,.]?|суббот[ауе][,.]?|воскресень[ея][,.]?|завтра[,.]?|послезавтра[,.]?|неделе[,.]?)()(?=\s|&nbsp;|$)/gi;
+          /(^|\s|&nbsp;)(январ[яеь][,.]?|феврал[яеь][,.]?|март[ае]?[,.]?|апрел[ьяе][,.]?|ма[ейя][,.]?|июн[ьяе][,.]?|июл[ьяе][,.]?|август[ае]?[,.]?|сентябр[яеь][,.]?|октябр[яеь][,.]?|ноябр[яеь][,.]?|декабр[яеь][,.]?|понедельник[ау][,.]?|вторник[ау]?[,.]?|сред[ау][,.]?|четверг[ау][,.]?|пятниц[ауе][,.]?|суббот[ауе][,.]?|воскресень[ея][,.]?|завтра[,.]?|послезавтра[,.]?|неделе[,.]?)()(?=\s|&nbsp;|$)/gi;
 
         text = text.replace(MONTHS_REGEX, (match, p1, month) => {
           const prefix = p1 || "";
           return `${prefix}${month.slice(0, 2)}&#8288;${month.slice(2)}`;
         });
 
+        text = text.replace(/(?<=\.)(ru|рф|com)/g, "&#8288;$1");
+
         return text;
-
-
-        
       }
 
-      function applyAdditionalFormatting(text) {
-
-
-        //text = text.replace(/(?<=\s)([A-Za-zА-Яа-я]{1,3})([-–—−])([A-Za-zА-Яа-я]{1,})(?=[!,?]\s|\s)/g, '$1&#8288;$2&#8288;$3');
-       // text = text.replace(/(?<=\s)([A-Za-zА-Яа-я]{1,})([-–—−])([A-Za-zА-Яа-я]{1,3})(?=[!,?]\s|\s)/g, '$1&#8288;$2&#8288;$3');
-
+      function typography(text) {
+        const dash =
+          /(>)([а-яА-Яa-zA-Z0-9]{1,4})([-–—−])([а-яА-Яa-zA-Z0-9]{1,4})/g;
+        text = text.replace(dash, (match, p1, p2, p3, p4) => {
+          if (/\d([-–—−]\d)/.test(match)) {
+            return match;
+          }
+          return `${p1}${p2}&#8288;${p3}&#8288;${p4}`;
+        });
 
         const period =
           /(\s)([0-9]+(?:,[0-9]+)?[-–—−][0-9]+(?:,[0-9]+)?)(?:\s([А-ЯЁа-яё&#8288;]+[.,!]?))?/g;
@@ -451,12 +587,9 @@
         );
 
         const NBSP_ONE_TWO_LETTERS =
-          /(^|[^А-ЯЁа-яё—\-])([Уу]л\.|[Нн]о|[Ее]е|[Сс]о(,)?|[Нн]а(,)?|[Ии]х(,)?|[Ии]м(,)?|[Тт]ы(,)?|[Тт]о(,)?|[Нн]и(,)?|[Вв]ы(,)?|[Зз]а(,)?|[Нн]у(,)?|[Нн]е(,)?|[Вв]о|[Пп]о|[Нн]е(,)?|[Оо]т(,)?|[Оо]б(,)?|[Оо]н(,)?|[Кк]о(,)?|[Мм]ы(,)?|[Дд]а(,)?|[Дд]о(,)?|[Ии]з|[Ее]й|[Ее]ю(,)?|[Яя](,)?|[Аа](,)?|[Ии](,)?|[Оо](,)?|[Уу](,)?|[Вв](,)?|[Сс](,)?|[Кк](,)?)(?=\s)/g;
+          /(^|[^А-ЯЁа-яё—&#8288;\-])([Уу]л\.|[Нн]о|[Ее]е|[Сс]о(,)?|[Нн]а(,)?|[Ии]х(,)?|[Ии]м(,)?|[Тт]ы(,)?|[Тт]о(,)?|[Нн]и(,)?|[Вв]ы(,)?|[Зз]а(,)?|[Нн]у(,)?|[Нн]е(,)?|[Вв]о|[Пп]о|[Нн]е(,)?|[Оо]т(,)?|[Оо]б(,)?|[Оо]н(,)?|[Кк]о(,)?|[Мм]ы(,)?|[Дд]а(,)?|[Дд]о(,)?|[Ии]з|[Ее]й|[Ее]ю(,)?|[Яя](,)?|[Аа](,)?|[Ии](,)?|[Оо](,)?|[Уу](,)?|[Вв](,)?|[Сс](,)?|[Кк](,)?)(?= )/g;
 
-        text = text.replace(
-          NBSP_ONE_TWO_LETTERS,
-          (match, p1, p2) => `${p1}${p2}&nbsp;`
-        );
+        text = text.replace(NBSP_ONE_TWO_LETTERS, "$1$2&nbsp;");
 
         text = text.replace(/&nbsp;\s+/g, "&nbsp;");
 
@@ -468,9 +601,7 @@
         );
 
         // неразрыв перед тире, удаление пробела перед тире
-        text = text.replace(/\s*—(?=\s|$)/g, function (match) {
-          return "&nbsp;" + "—";
-        });
+        text = text.replace(/\s*—(?=\s|$)/g, "&nbsp;—");
 
         // неразрыв перед РФ, удаление пробела перед РФ
         text = text.replace(/\s+(РФ|РФ.)(?=[.,]?\s|$)/g, "&nbsp;$1");
@@ -502,20 +633,15 @@
         );
 
         const NBSP_VNEKONTEKSTA =
-          /(^|[^А-ЯЁа-яё])[Вв]не([  ])контекста([^А-ЯЁа-яё]|$)/g;
-        text = text.replace(
-          NBSP_VNEKONTEKSTA,
-          (match, p1, p2, p3) => `${p1}вне&nbsp;контекста${p3}`
-        );
+          /(^|[^А-ЯЁа-яё])[Вв]не контекста([^А-ЯЁа-яё]|$)/g;
+        text = text.replace(NBSP_VNEKONTEKSTA, `$1вне&nbsp;контекста$3`);
 
         const NBSP_VSERAVNO =
-          /(^|[^А-ЯЁа-яё])[Вв]с[её]([  ])равно([^А-ЯЁа-яё]|$)/g;
-        text = text.replace(
-          NBSP_VSERAVNO,
-          (match, p1, p2, p3) => `${p1}всё&nbsp;равно${p3}`
-        );
-
-        text = text.replace(/<\/li>|<li>/g, "");
+          /(^|[^А-ЯЁа-яё])([Вв])с[её] равно([^А-ЯЁа-яё]|$)/g;
+        text = text.replace(NBSP_VSERAVNO, (match, p1, p2, p3) => {
+          const vse = p2 === "В" ? "Все" : "все";
+          return `${p1}${vse}&nbsp;равно${p3}`;
+        });
 
         return text;
       }
@@ -545,10 +671,10 @@
                   parts[index - 1].endsWith(" ") ||
                   parts[index + 1].startsWith(" ")
                 ) &&
-                (parts[index + 1].replace(/[«».,!?;</p></a>]/g, "")
-                  .length < 5 ||
-                  parts[index - 1].replace(/[«».,!?;</p></a>]/g, "")
-                    .length < 5 ||
+                (parts[index + 1].replace(/[«».,!?;</p></a>]/g, "").length <
+                  5 ||
+                  parts[index - 1].replace(/[«».,!?;</p></a>]/g, "").length <
+                    5 ||
                   parts[index + 1]
                     .replace(/[«».,!?;</p>]]/g, "")
                     .toLowerCase() === "нибудь")
@@ -564,7 +690,24 @@
       }
 
       function links(text) {
-        const result = text.replace(
+        text = text.replace(
+          /\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g,
+          (match, href, linkText) => {
+            return `<button href="${href}">\n${linkText}\n</button>`;
+          }
+        );
+
+        text = text.replace(
+          /<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g,
+          (match, href, linkText) => {
+            return `<button href="${href}">\n${linkText}\n</button>`;
+          }
+        );
+
+        text = text.replace(/<p><button/g, "<button");
+        text = text.replace(/<\/button><\/p>/g, "</button>\n\n");
+
+        text = text.replace(
           /<a\s+href="([^"]+)">([^<]+)<\/a>/g,
           (match, href, linkText) => {
             if (activeFormat === "tj") {
@@ -577,43 +720,10 @@
           }
         );
 
-        return result;
+        return text;
       }
 
       function verstak(text) {
-        text = text.replace(/<h2&nbsp;/g, "<h2 ").replace(/<h1&nbsp;/g, "<h1 ");
-
-        /*     const regexx = /s*<img src="([^"]+)"[^>]/g;
-
-        text = text.replace(
-          regexx,
-          `
-</image
-  pad="0, 28"
-  href="$1"
-  src="$2"
-  alt="Pic"
-  border="0"
-/>`.trim()
-        ); */
-
-        text = text
-          .replace(/<p>/g, '<p pad="12, 0">')
-          .replace(/<\/p>/g, "</p>");
-        text = text
-
-          .replace(/<h2/g, '<h2 pad="12, 0"')
-          .replace(/<\/h2>/g, "</h2>")
-          .replace(/<h1/g, '<h1 pad="12, 0"')
-          .replace(/<\/h1>/g, "</h1>");
-
-        text = text
-          .replace(/<ul/g, "<list-mar")
-          .replace(/<\/ul>/g, "</list-mar>");
-        text = text
-          .replace(/<ol/g, "<list-num")
-          .replace(/<\/ol>/g, "</list-num>");
-
         return text;
       }
 
