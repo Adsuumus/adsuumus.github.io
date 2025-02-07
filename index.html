@@ -247,12 +247,15 @@
         const regex3 =
           /(&lt;a href&#61;"[^"]+" target&#61;"_blank" style&#61;"text-decoration: none; color: #1414cc"&gt;&lt;span class&#61;"dm_col-B2BDFF link2-und-hov" style&#61;"color: #1414cc"&gt;)/g;
         const regex4 = /(&lt;&#47;span&gt;&lt;&#47;a&gt;)/g;
+        const regex5 =
+          /(&lt;a href&#61;"[^"]+" target&#61;"_blank" style&#61;"text-decoration: none; color: #0068ff"&gt;&lt;span class&#61;"dm-col-66A3FF" style&#61;"color: #0068ff"&gt;)/g;
 
         return text
           .replace(regex1, `<span style="color: #f22b71">$1</span>`)
-          .replace(regex2, `<span style="color: #f22b71;">$1</span>`)
-          .replace(regex3, `<span style="color: #00257d;">$1</span>`)
-          .replace(regex4, `<span style="color: #00257d;">$1</span>`);
+          .replace(regex2, `<span style="color: #f22b71;">$1</span>`);
+        //.replace(regex3, `<span style="color: #00257d;">$1</span>`);
+        //.replace(regex4, `<span style="color: #00257d;">$1</span>`)
+        //.replace(regex5, `<span style="color: #00257d;">$1</span>`);
       }
 
       /*       function addPaddingToTags(inputText) {
@@ -308,13 +311,36 @@
           return result;
       } */
 
-      function addPaddingToTags(inputText) {
+      function addPaddingToTags(text) {
+        text = text.replace(/<q>/g, "<p>").replace(/<\/q>/g, "</p>");
+        text = text.replace(/<(p)>/g, "<$1>\n");
+
+        text = text.replace(/<(\/p)>/g, "\n<$1>\n\n");
+        text = text.replace(/<\/p>\s*<\/quote>/g, "</p>\n</quote>\n\n");
+        text = text.replace(/<(\/h(\d))>/g, "<$1>\n\n");
+
+        text = text.replace(/<li><em>([^<]*)<\/em>/g, "<em>\n$1\n<\/em>\n<li>");
+        text = text.replace(/<(\/li)>/g, "\n<$1>\n");
+        text = text.replace(/<(li)>/g, "<$1>\n");
+        text = text.replace(/<(el|ul|ol)>/g, "<$1>\n");
+        text = text.replace(/<(\/ul|\/ol|\/el)>/g, "<$1>\n\n");
+
         const tagRegex = /<(h2|p|ul)([^>]*)>/g;
+        const quoteRegex = /<quote[^>]*>([\s\S]*?)<\/quote>/g;
 
         let tags = [];
         let match;
 
-        while ((match = tagRegex.exec(inputText)) !== null) {
+        let quotedTexts = [];
+        while ((match = quoteRegex.exec(text)) !== null) {
+          quotedTexts.push({
+            start: match.index,
+            end: match.index + match[0].length,
+            content: match[1],
+          });
+        }
+
+        while ((match = tagRegex.exec(text)) !== null) {
           tags.push({
             tagName: match[1],
             fullTag: match[0],
@@ -322,7 +348,7 @@
           });
         }
 
-        let result = inputText;
+        let result = text;
 
         tags.forEach((tag, i) => {
           let padValue = 0;
@@ -330,14 +356,20 @@
           const nextTag = tags[i + 1];
           const prevTag = tags[i - 1];
 
+          const isInsideQuote = quotedTexts.some(
+            (quote) => tag.index >= quote.start && tag.index <= quote.end
+          );
+
           if (activeFormat === "tj") {
             if (tag.tagName === "p") {
-              if (nextTag?.tagName === "p") {
+              if (isInsideQuote) {
+                padValue = "15,0";
+              } else if (nextTag?.tagName === "p") {
                 padValue = "0,20";
               } else if (nextTag?.tagName === "ul") {
                 padValue = "0,10";
               } else {
-                padValue = "0, 0";
+                padValue = "0,0";
               }
             } else if (tag.tagName === "h2") {
               if (nextTag?.tagName === "p") {
@@ -364,12 +396,10 @@
             }
           }
 
-          // if (padValue !== 0) {
           const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(
             tag.tagName.length + 1
           )}`;
           result = result.replace(tag.fullTag, newTag);
-          //  }
         });
 
         return result;
@@ -488,18 +518,6 @@
             '<quote name="$2" href="$1">\n$3</quote>'
           );
 
-        text = text.replace(/<q>/g, "<p>").replace(/<\/q>/g, "</p>");
-        text = text.replace(/<(p)>/g, "<$1>\n");
-
-        text = text.replace(/<(\/p)>/g, "\n<$1>\n\n");
-        text = text.replace(/<\/p>\s*<\/quote>/g, "</p>\n</quote>");
-        text = text.replace(/<(\/h(\d))>/g, "<$1>\n\n");
-
-        text = text.replace(/<li><em>([^<]*)<\/em>/g, "<em>\n$1\n<\/em>\n<li>");
-        text = text.replace(/<(\/li)>/g, "\n<$1>\n");
-        text = text.replace(/<(li)>/g, "<$1>\n");
-        text = text.replace(/<(el|ul|ol)>/g, "<$1>\n");
-        text = text.replace(/<(\/ul|\/ol|\/el)>/g, "<$1>\n\n");
         return text;
       }
 
@@ -693,19 +711,18 @@
         text = text.replace(
           /\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g,
           (match, href, linkText) => {
-            return `<button href="${href}">\n${linkText}\n</button>`;
+            return `</button name="${linkText}" href="${href}">`;
           }
         );
 
         text = text.replace(
           /<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g,
           (match, href, linkText) => {
-            return `<button href="${href}">\n${linkText}\n</button>`;
+            return `</button name="${linkText}" href="${href}">`;
           }
         );
 
-        text = text.replace(/<p><button/g, "<button");
-        text = text.replace(/<\/button><\/p>/g, "</button>\n\n");
+        text = text.replace(/<p><\/button([^>]*)><\/p>/g, "</button$1>\n\n");
 
         text = text.replace(
           /<a\s+href="([^"]+)">([^<]+)<\/a>/g,
@@ -778,6 +795,6 @@
           URL.revokeObjectURL(url);
         });
     </script>
-    <div style="padding: 10px">Developed by Ruslan. Ревизия 3.2</div>
+    <div style="padding: 10px">Developed by Ruslan. Ревизия 3.1</div>
   </body>
 </html>
