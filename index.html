@@ -711,18 +711,18 @@
         text = text.replace(
           /\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g,
           (match, href, linkText) => {
-            return `</button name="${linkText}" href="${href}">`;
+            return `</btn name="${linkText}" href="${href}">`;
           }
         );
 
         text = text.replace(
           /<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g,
           (match, href, linkText) => {
-            return `</button name="${linkText}" href="${href}">`;
+            return `</btn name="${linkText}" href="${href}">`;
           }
         );
 
-        text = text.replace(/<p><\/button([^>]*)><\/p>/g, "</button$1>\n\n");
+        text = text.replace(/<p><\/btn([^>]*)><\/p>/g, "</btn>\n\n");
 
         text = text.replace(
           /<a\s+href="([^"]+)">([^<]+)<\/a>/g,
