@@ -258,58 +258,7 @@
         //.replace(regex5, `<span style="color: #00257d;">$1</span>`);
       }
 
-      /*       function addPaddingToTags(inputText) {
-          // Регулярное выражение для поиска нужных тегов: <h1>, <p>, <li>
-          const tagRegex = /<(h1|p|li)([^>]*)>/g;
-
-          // Массив для хранения всех тегов с их индексами
-          let tags = [];
-          let match;
-
-          // Ищем все соответствующие теги в тексте
-          while ((match = tagRegex.exec(inputText)) !== null) {
-              tags.push({
-                  tagName: match[1], // Имя тега
-                  fullTag: match[0], // Полный тег
-                  index: match.index, // Индекс начала тега
-              });
-          }
-
-          // Массив для хранения результата
-          let result = inputText;
-
-          // Пройдем по каждому тегу по порядку
-          tags.forEach((tag, i) => {
-              // Значение pad по умолчанию для каждого тега
-              let padValue = '10';
-
-              // Определяем значение pad в зависимости от следующего тега
-              const nextTag = tags[i + 1]; // Следующий тег
-
-              if (tag.tagName === 'h1') {
-                  if (nextTag?.tagName === 'p') {
-                      padValue = '15'; // Если следующий тег <p>, то pad="15"
-                  } else if (nextTag?.tagName === 'li') {
-                      padValue = '10'; // Если следующий тег <li>, то pad="10"
-                  }
-              } else if (tag.tagName === 'p') {
-                  if (nextTag?.tagName === 'p') {
-                      padValue = '20'; // Если следующий тег <p>, то pad="20"
-                  } else if (nextTag?.tagName === 'li') {
-                      padValue = '10'; // Если следующий тег <li>, то pad="10"
-                  }
-              }
-
-              // Заменяем тег на новый с атрибутом pad
-              const padRegex = new RegExp(`<${tag.tagName}([^>]*)>`);
-              const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(tag.tagName.length + 1)}`;
-
-              // Заменяем старый тег на новый с атрибутом pad
-              result = result.replace(tag.fullTag, newTag);
-          });
-
-          return result;
-      } */
+    
 
       function addPaddingToTags(text) {
         text = text.replace(/<q>/g, "<p>").replace(/<\/q>/g, "</p>");
@@ -324,6 +273,9 @@
         text = text.replace(/<(li)>/g, "<$1>\n");
         text = text.replace(/<(el|ul|ol)>/g, "<$1>\n");
         text = text.replace(/<(\/ul|\/ol|\/el)>/g, "<$1>\n\n");
+
+        text = text.replace(/<img([^>]*?)>/g, "<img $1>\n\n");
+    
 
         const tagRegex = /<(h2|p|ul)([^>]*)>/g;
         const quoteRegex = /<quote[^>]*>([\s\S]*?)<\/quote>/g;
@@ -405,24 +357,6 @@
         return result;
       }
 
-      function posteffect(text) {
-        const regexx =
-          /<p>\s*<a href="([^"]+)">\s*<img src="([^"]+)"[^>]*>\s*<\/a>\s*<\/p>/g;
-
-        text = text.replace(
-          regexx,
-          `
-            </image
-              pad="0, 28"
-              href="$1"
-              src="$2"
-              alt="Pic"
-              border="0"
-            />`.trim()
-        );
-
-        return text;
-      }
 
       function removeTags(text) {
         text = text
@@ -474,13 +408,6 @@
           '<a href="$2">'
         );
 
-        text = text.replace(/<p>\s*(<img[^>]*>)\s*<\/p>/g, "$1");
-
-        text = text.replace(
-          /<img([^>]*?)\s+src="([^"]+)".*?>/g,
-          '<img src="$2">'
-        );
-
         // работа со списками
         //text = text.replace(/<(ul|ol)>/g, "<$1>\n");
 
@@ -508,6 +435,8 @@
           return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
         });
 
+        //цитаты
+
         text = text
           .replace(
             /<p><a href="([^"]+)">([^<]*)<\/a><\/p><p>([^<]*)<\/p>((<q>.*?<\/q>\s*)+)/g,
@@ -517,6 +446,23 @@
             /<p><a href="([^"]+)">([^<]*)<\/a><\/p>((<q>.*?<\/q>\s*)+)/g,
             '<quote name="$2" href="$1">\n$3</quote>'
           );
+
+          //картинки
+
+          text = text.replace(/<p>(<img[^>]*>)<\/p>/g, "$1");
+
+          text = text.replace(
+           /<img([^>]*?)\s+src="([^"]+)".*?>/g,
+               '<img src="$2">'
+              );
+
+          text = text
+          .replace(
+            /<p><a([^>]*?)><img([^>]*?)><\/a><\/p>/g,
+            '<img$1$2>')
+          .replace(
+            /<img([^>]*?)>/g,
+            '<img border="0"$1>');
 
         return text;
       }
@@ -722,7 +668,7 @@
           }
         );
 
-        text = text.replace(/<p><\/btn([^>]*)><\/p>/g, "</btn>\n\n");
+        text = text.replace(/<p><\/btn([^>]*)><\/p>/g, "</btn$1>\n\n");
 
         text = text.replace(
           /<a\s+href="([^"]+)">([^<]+)<\/a>/g,
@@ -795,6 +741,6 @@
           URL.revokeObjectURL(url);
         });
     </script>
-    <div style="padding: 10px">Developed by Ruslan. Ревизия 3.1</div>
+    <div style="padding: 10px">Developed by Ruslan. rev 3.3</div>
   </body>
 </html>
