@@ -153,7 +153,7 @@
         const tags = [];
         text = text.replace(/<[^>]*>/g, (match) => {
           tags.push(match);
-          return `__TAG_${tags.length - 1}__ `;
+          return `__TAG_${tags.length - 1}__`;
         });
 
         // типографика
@@ -164,7 +164,7 @@
         text = formattingDate(text);
 
         // возвращаем содержимое тегов
-        text = text.replace(/__TAG_(\d+)__ /g, (match, index) => {
+        text = text.replace(/__TAG_(\d+)__/g, (match, index) => {
           return tags[parseInt(index, 10)];
         });
 
@@ -260,8 +260,7 @@
         });
         text = text.replace(/<br class="Apple-interchange-newline">/g, "");
 
-        const emojiRegex =
-          /([\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{1F900}-\u{1F9FF}\u{2700}-\u{27BF}\u{1F004}-\u{1F0CF}\u{1F170}-\u{1F251}\u{1F004}-\u{1F0CF}\u{2B50}\u{1F004}-\u{1F0CF}])/gu;
+        const emojiRegex = /(\p{Emoji}\u200D[\p{Emoji}\u200D]*(?:\p{Emoji_Presentation}|\p{Emoji})|[0-9#*]\uFE0F?\u20E3|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Presentation})/gu;
         text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
 
         text = text.replace(/<\/em><em>/g, "");
@@ -281,8 +280,10 @@
           '<a href="$2">'
         );
 
-        // работа со списками
-        //text = text.replace(/<(ul|ol)>/g, "<$1>\n");
+        text = text.replace(
+          /<p><a href="([^"]+)"><b>(.*?)<\/b><\/a><\/p>/g,
+          '<h2 href="$1">$2</h2>'
+        );
 
         text = text.replace(
           /<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g,
@@ -472,10 +473,10 @@
                   parts[index - 1].endsWith(" ") ||
                   parts[index + 1].startsWith(" ")
                 ) &&
-                (parts[index + 1].replace(/[«».,!?;</p></a>]/g, "").length <
-                  5 ||
-                  parts[index - 1].replace(/[«».,!?;</p></a>]/g, "").length <
-                    5 ||
+                (parts[index + 1].replace(/[«».,!?;</p></a>]|__TAG_\d+__/g, "")
+                  .length < 5 ||
+                  parts[index - 1].replace(/[«».,!?;</p></a>]|__TAG_\d+__/g, "")
+                    .length < 5 ||
                   parts[index + 1]
                     .replace(/[«».,!?;</p>]]/g, "")
                     .toLowerCase() === "нибудь")
