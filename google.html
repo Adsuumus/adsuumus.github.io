@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Многофункциональная Майя</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 0;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      #imageContainer {
+        margin-right: 20px;
+      }
+      #imageContainer img {
+        max-width: 50px;
+        max-height: 50px;
+        display: block;
+        border-radius: 50%;
+      }
+      #editableDiv {
+        border: none;
+        width: calc(100% - 22px);
+        box-shadow: 0 2px 5px rgba(188, 184, 184, 0.1);
+        min-height: 550px;
+        max-height: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        margin-top: 20px;
+        white-space: pre-wrap;
+        -webkit-text-stroke: 0.1px currentColor;
+        font-size: 19px;
+        line-height: 1.3em;
+        padding: 10px;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      #editableDiv:focus {
+        outline: none;
+        border: none;
+      }
+      @media (max-width: 600px) {
+        .radio-button {
+          font-size: 14px;
+          padding: 8px 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div id="imageContainer">
+        <img
+          src="./Типограф Майя_files/69c46e6e-9e0d-460f-863e-811ad835b982.jpg"
+          alt="Майя"
+        />
+      </div>
+      <div>
+        <p>Добавляет класс для защиты от перевода</p>
+      </div>
+    </div>
+
+    <div
+      id="editableDiv"
+      contenteditable="true"
+      spellcheck="false"
+      autocorrect="off"
+    ></div>
+
+    <script>
+      window.addEventListener("load", () => {
+        document.getElementById("editableDiv").focus();
+      });
+
+      function processText(text) {
+        const regex =
+          /<table\b(?![^>]*\bclass\s*=\s*['"][^'"]*\bnotranslate\b[^'"]*['"])([^>]*)>/;
+
+        const replacement = (match, p1) => {
+          if (/class\s*=\s*['"]/.test(p1)) {
+            return `<table${p1.replace(
+              /(class\s*=\s*['"])([^'"]*)(['"])/,
+              "$1$2 notranslate$3"
+            )}>`;
+          } else {
+            return `<table${p1} class="notranslate">`;
+          }
+        };
+
+        return text.replace(regex, replacement);
+      }
+
+      document
+        .getElementById("editableDiv")
+        .addEventListener("paste", (event) => {
+          event.preventDefault();
+          const clipboardData = (
+            event.clipboardData || window.clipboardData
+          ).getData("text/plain");
+          if (clipboardData) {
+            const processedText = processText(clipboardData);
+            // Для contenteditable div используем innerHTML или textContent
+            document.getElementById("editableDiv").textContent = processedText;
+          }
+        });
+    </script>
+    <div style="padding: 10px">Developed by Ruslan. Exorcismus I</div>
+  </body>
+</html>
