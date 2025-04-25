@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Минификатор Майя</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 0;
+        background-color: #f5f5f5;
+        color: #333;
+      }
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      #imageContainer {
+        margin-right: 20px;
+      }
+      #imageContainer img {
+        max-width: 50px;
+        max-height: 50px;
+        display: block;
+        border-radius: 50%;
+      }
+      #editableDiv {
+        border: none;
+        width: calc(100% - 22px);
+        box-shadow: 0 2px 5px rgba(188, 184, 184, 0.1);
+        min-height: 550px;
+        max-height: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #ffffff;
+        margin-top: 20px;
+        white-space: pre-wrap;
+        -webkit-text-stroke: 0.1px currentColor;
+        font-size: 19px;
+        line-height: 1.3em;
+        padding: 10px;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+      }
+      #editableDiv:focus {
+        outline: none;
+        border: none;
+      }
+      .size-info {
+        font-size: 14px;
+        color: #666;
+      }
+      @media (max-width: 600px) {
+        .radio-button {
+          font-size: 14px;
+          padding: 8px 15px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div id="imageContainer">
+        <img
+          src="https://email-images.mindbox.ru/TJ/b6f00fe0-3e8c-444f-8c1a-a18857d960f3/69c46e6e-9e0d-460f-863e-811ad835b982.jpg"
+          alt="Майя"
+        />
+      </div>
+      <div>
+        <p style="margin-bottom: 4px" :>Минификатор</p>
+        <div id="sizeInfo" class="size-info">
+          До: 0 KB → После: 0 KB (сжатие 0%)
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="editableDiv"
+      contenteditable="true"
+      spellcheck="false"
+      autocorrect="off"
+    ></div>
+
+    <script>
+      window.addEventListener("load", () => {
+        document.getElementById("editableDiv").focus();
+      });
+
+      function processText(text) {
+        const originalSizeKB = (
+          new TextEncoder().encode(text).length / 1024
+        ).toFixed(2);
+
+        const processedText = text
+          .replace(/[\r\n\s]+/g, " ")
+          .replace(/ >/g, ">")
+          .replace(/ ">/g, '">')
+          .replace(/ \/>/g, "/>")
+          .replace(/\s*<\/td>\s*/g, "</td>")
+          .replace(/\s*<td>\s*/g, "<td>")
+          .replace(/\s*<tr>\s*/g, "<tr>")
+          .replace(/\s*<\/tr>\s*/g, "</tr>")
+          .replace(/\s*<table>\s*/g, "<table>")
+          .replace(/\s*<\/table>\s*/g, "</table>")
+
+          .replace(/<tbody>/g, "")
+          .replace(/<\/tbody>/g, "")
+
+          .replace(/\s*<table/g, "<table")
+          .replace(/\s*<tr/g, "<tr")
+          .replace(/\s*<td/g, "<td")
+          .replace(/ @{/g, "@{")
+          .replace(/<!--[\s\S]*?-->/g, "")
+          .replace(/<([^>]*)>/g, (match, content) => {
+            const processedContent = content
+              .replace(/" /g, '"')
+              .replace(/: /g, ":")
+              .replace(/; /g, ";");
+            return `<${processedContent}>`;
+          })
+          .replace(/<style type="text\/css">[\s\S]*?<\/style>/g, (match) => {
+            const processedContent = match
+              .replace(/>\s+</g, "><")
+              .replace(/\s+}/g, "}")
+              .replace(/}\s+/g, "}")
+              .replace(/{\s+/g, "{")
+              .replace(/\s+!/g, "!")
+              .replace(/"\s+/g, '"')
+              .replace(/:\s+/g, ":")
+              .replace(/;\s+/g, ";");
+            return processedContent;
+          });
+
+        const processedSizeKB = (
+          new TextEncoder().encode(processedText).length / 1024
+        ).toFixed(2);
+
+        document.getElementById(
+          "sizeInfo"
+        ).textContent = `До: ${originalSizeKB} KB → После: ${processedSizeKB} KB (сжатие ${(
+          (1 - processedSizeKB / originalSizeKB) *
+          100
+        ).toFixed(1)}%)`;
+
+        return processedText;
+      }
+
+      document
+        .getElementById("editableDiv")
+        .addEventListener("paste", (event) => {
+          event.preventDefault();
+          const clipboardData = (
+            event.clipboardData || window.clipboardData
+          ).getData("text/plain");
+          if (clipboardData) {
+            const processedText = processText(clipboardData);
+            document.getElementById("editableDiv").textContent = processedText;
+          }
+        });
+    </script>
+    <div style="padding: 10px">Developed by Ruslan. Exorcismus I</div>
+  </body>
+</html>
