@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>cropper</title>
+    <link
+            rel="icon"
+            href="https://email-images.mindbox.ru/TJ/b6f00fe0-3e8c-444f-8c1a-a18857d960f3/69c46e6e-9e0d-460f-863e-811ad835b982.jpg"
+    />
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="header">
+    <img src="https://email-images.mindbox.ru/TJ/b6f00fe0-3e8c-444f-8c1a-a18857d960f3/69c46e6e-9e0d-460f-863e-811ad835b982.jpg"
+         alt="" class="icon">
+    <button id="downloadAll" class="button download-button">Скачать все</button>
+    <div class="noise-control">
+        <p>Шум:</p>
+        <label>
+            <input type="range" id="noiseStrength" min="0" max="1" step="0.01" value="0.04"/>
+            <span id="noiseValue">0.04</span>
+        </label>
+    </div>
+</div>
+<div class="drop-zone"><p>Вставь картинки из буфера</p>
+    <canvas id="canvas" style="display:none;"></canvas><canvas id="noiseCanvas" style="display: none;"></canvas>
+    <div>
+        <div id="results-container" class="results-container"></div>
+    </div>
+</div>
+<script src="./cropper.js"></script>
+</body>
+</html>
