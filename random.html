@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>random</title>
+    <style></style>
+  </head>
+  <body>
+    <div class="header">
+
+    <script>
+      const pages = [
+        "https://t-j.ru/news/reachy-mini-robot/",
+        "https://t-j.ru/news/nvidia-4-trillion/",
+        "https://t-j.ru/news/stalker-2-on-ps5/",
+      ];
+
+      function getRandomPage(pagesArray) {
+        const randomIndex = Math.floor(Math.random() * pagesArray.length);
+        return pagesArray[randomIndex];
+      }
+
+      const randomPage = getRandomPage(pages);
+
+      window.location.href = randomPage;
+    </script>
+    <div style="padding: 10px">Test</div>
+  </body>
+</html>
