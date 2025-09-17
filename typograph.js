@@ -1,24 +1,40 @@
 let activeFormat = "tj";
 
 window.addEventListener("load", () => {
+    const savedFormat = localStorage.getItem("activeFormat");
+    if (savedFormat) {
+        activeFormat = savedFormat;
+    }
+
+    document.querySelectorAll(".radio-button").forEach((btn) =>
+        btn.classList.remove("active")
+    );
+
+    const activeBtn = document.querySelector(`.radio-button[data-value="${activeFormat}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add("active");
+    }
+
     document.getElementById("typograph-container").focus();
 });
-
-document
-    .querySelector('.radio-button[data-value="tj"]')
-    .classList.add("active");
 
 document.querySelectorAll(".radio-button").forEach((button) => {
     button.addEventListener("click", function () {
         document
             .querySelectorAll(".radio-button")
             .forEach((btn) => btn.classList.remove("active"));
+
         this.classList.add("active");
+
         activeFormat = this.getAttribute("data-value");
+
+        localStorage.setItem("activeFormat", activeFormat);
+
         updateTypograph();
         document.getElementById("typograph-container").focus();
     });
 });
+
 
 function updateTypograph() {
     const editableDiv = document.getElementById("typograph-container");
@@ -47,20 +63,20 @@ document
         }
     });
 
-document
-    .getElementById("downloadButton")
-    .addEventListener("click", () => {
-        const text = document.getElementById("typograph-container").textContent;
-        const blob = new Blob([text], {type: "text/html"});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "document.html";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    });
+// document
+//     .getElementById("downloadButton")
+//     .addEventListener("click", () => {
+//         const text = document.getElementById("typograph-container").textContent;
+//         const blob = new Blob([text], {type: "text/html"});
+//         const url = URL.createObjectURL(blob);
+//         const a = document.createElement("a");
+//         a.href = url;
+//         a.download = "document.html";
+//         document.body.appendChild(a);
+//         a.click();
+//         document.body.removeChild(a);
+//         URL.revokeObjectURL(url);
+//     });
 
 function main(text) {
     text = decodeHtml(text);
@@ -90,6 +106,10 @@ function main(text) {
 
     text = links(text);
     text = addPaddingToTags(text);
+
+    if (activeFormat === 'easy') {
+        text = cleaner(text);
+    }
 
     text = escapeHtml(text);
     text = highlight(text);
@@ -138,6 +158,10 @@ function saveTags(text) {
     text = text.replace(/<h1/g, `<h2`).replace(/<\/h1/g, `</h2`);
 
     return text;
+}
+
+function cleaner(text) {
+    return text.replace(/<p>|<\/p>\n\n/g, '').replace(/<b>|<\/b>/g, '')
 }
 
 function removeTags(text) {
@@ -230,12 +254,12 @@ function typography(text) {
     });
 
     const period = /(\s)([0-9]+(?:,[0-9]+)?[-–—−][0-9]+(?:,[0-9]+)?)(?:\s([А-ЯЁа-яё&#8288;]+[.,!]?))?/g;
+    if (activeFormat !== "easy") {
+        text = text.replace(period, (match, p1, p2, p3) => `${p1}<span style="white-space: nowrap;">${p2}${p3 ? ` ${p3}` : ""}</span>`);
 
-    text = text.replace(period, (match, p1, p2, p3) => `${p1}<span style="white-space: nowrap;">${p2}${p3 ? ` ${p3}` : ""}</span>`);
-
-    const iz_za = /([Ии]з&#8288;[-–—−]&#8288;за)\s+([А-ЯЁа-яё]+)/g;
-    text = text.replace(iz_za, (match, p1, p2) => `<span style="white-space: nowrap;">${match}</span>`);
-
+        const iz_za = /([Ии]з&#8288;[-–—−]&#8288;за)\s+([А-ЯЁа-яё]+)/g;
+        text = text.replace(iz_za, (match, p1, p2) => `<span style="white-space: nowrap;">${match}</span>`);
+    }
     /*    const IZ_ZA = /(^|\s)(из-за)(\s|$)/g;
     text = text.replace(
       IZ_ZA,
@@ -285,13 +309,18 @@ function typography(text) {
 
     text = text.replace(/&nbsp;\s+/g, "&nbsp;");
 
+    text = text.replace(/&nbsp;по /g, "&nbsp;по&nbsp;").replace(/&nbsp;до /g, "&nbsp;до&nbsp;");
+
+    text = text.replace(/&nbsp;&nbsp;/g, "&nbsp;");
+
     return text;
 }
 
 function highlightDashes(text) {
     const words = text.split(" ");
     const result = words.map((word, index, array) => {
-        if (/\d([-–—−]\d)/.test(word)) {
+
+        if (activeFormat !== "easy" && /\d([-–—−]\d)/.test(word)) {
             return word;
         }
 
@@ -331,7 +360,7 @@ function links(text) {
     text = text.replace(/<p><\/btn([^>]*)><\/p>/g, "</btn$1>\n\n");
 
     text = text.replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/g, (match, href, linkText) => {
-        if (activeFormat === "tj") {
+        if (activeFormat === "tj" || activeFormat === "easy") {
             return `<a href="${href}" target="_blank" style="text-decoration: none; color: #1414cc"><span class="dm_col-B2BDFF link2-und-hov" style="color: #1414cc">${linkText}</span></a>`;
         } else if (activeFormat === "bs") {
             return `<a href="${href}" target="_blank" style="text-decoration: none; color: #0068ff"><span class="dm-col-66A3FF" style="color: #0068ff">${linkText}</span></a>`;
@@ -450,16 +479,7 @@ function escapeHtml(text) {
 function highlight(text) {
     const regex1 = /(&amp;nbsp;)/g;
     const regex2 = /(&amp;#8288;)/g;
-    const regex3 = /(&lt;a href&#61;"[^"]+" target&#61;"_blank" style&#61;"text-decoration: none; color: #1414cc"&gt;&lt;span class&#61;"dm_col-B2BDFF link2-und-hov" style&#61;"color: #1414cc"&gt;)/g;
-    const regex4 = /(&lt;&#47;span&gt;&lt;&#47;a&gt;)/g;
-    const regex5 = /(&lt;a href&#61;"[^"]+" target&#61;"_blank" style&#61;"text-decoration: none; color: #0068ff"&gt;&lt;span class&#61;"dm-col-66A3FF" style&#61;"color: #0068ff"&gt;)/g;
-
-    const regex6 = /(&lt;p pad&#61;"0,20"&gt;)/g;
     return text
         .replace(regex1, `<span style="color: #f22b71">$1</span>`)
         .replace(regex2, `<span style="color: #f22b71;">$1</span>`);
-    //  .replace(regex6, `<span style="color: #acacac;">$1</span>`);
-    //.replace(regex3, `<span style="color: #00257d;">$1</span>`);
-    //.replace(regex4, `<span style="color: #00257d;">$1</span>`)
-    //.replace(regex5, `<span style="color: #00257d;">$1</span>`);
 }
