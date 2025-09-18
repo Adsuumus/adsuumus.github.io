@@ -8,23 +8,19 @@
   </head>
   <body>
     <div class="header">
-
     <script>
-      const pages = [
-        "https://t-j.ru/news/reachy-mini-robot/",
-        "https://t-j.ru/news/nvidia-4-trillion/",
-        "https://t-j.ru/news/stalker-2-on-ps5/",
-      ];
+      // записываем все, что после # в переменную
+      const hash = window.location.hash.slice(1);
+      // расшифровываем
+      const decodedUrls = window.atob(hash);
+      // собираем массив из переменной, элементы делит знак ~
+      const urlList = decodedUrls.split('~').filter(Boolean);
 
-      function getRandomPage(pagesArray) {
-        const randomIndex = Math.floor(Math.random() * pagesArray.length);
-        return pagesArray[randomIndex];
-      }
+      const randomIndex = Math.floor(Math.random() * urlList.length);
+      const randomUrl = urlList[randomIndex];
 
-      const randomPage = getRandomPage(pages);
-
-      window.location.href = randomPage;
+      window.location.href = 'https://t-j.ru' + randomUrl;
     </script>
-    <div style="padding: 10px">Test</div>
+   </div>
   </body>
 </html>
