@@ -10,14 +10,19 @@
     <div class="header">
     <script>
       // записываем все, что после # в переменную
-      const hash = window.location.hash.slice(1);
-      // запишем ЮТМ
+      let hash = window.location.hash.slice(1);
+
+      // запишем ЮТМ и почистим строку
       let utm = "";
       if (hash.includes("?utm")) {
-        utm = hash.substring(hash.indexOf("?utm"));
+        const utmIndex = hash.indexOf("?utm");
+        utm = hash.substring(utmIndex);
+        hash = hash.substring(0, utmIndex);
       }
+
       // расшифровываем
       const decodedUrls = window.atob(hash);
+      
       // собираем массив из переменной, элементы делит знак ~
       const urlList = decodedUrls.split('~').filter(Boolean);
 
