@@ -14,8 +14,8 @@
 
       // запишем ЮТМ и почистим строку
       let utm = "";
-      if (hash.includes("?utm")) {
-        const utmIndex = hash.indexOf("?utm");
+      if (hash.includes("%3Futm")) {
+        const utmIndex = hash.indexOf("%3Futm");
         utm = hash.substring(utmIndex);
         hash = hash.substring(0, utmIndex);
       }
