@@ -11,22 +11,8 @@
     <script>
       // записываем все, что после # в переменную
       let hash = window.location.hash.slice(1);
-
-      // запишем ЮТМ и почистим строку
-      let utm = "";
-      if (hash.includes("%3Futm")) {
-        const utmIndex = hash.indexOf("%3Futm");
-        utm = hash.substring(utmIndex);
-        hash = hash.substring(0, utmIndex);
-      }
-
-      console.log(utm);
-      console.log(hash);
-
       // расшифровываем
       const decodedUrls = window.atob(hash);
-
-      console.log(hash);
       // собираем массив из переменной, элементы делит знак ~
       const urlList = decodedUrls.split('~').filter(Boolean);
 
@@ -38,7 +24,7 @@
         randomUrl = 'https://t-j.ru' + randomUrl;
       }
 
-      window.location.href = randomUrl + utm;
+      window.location.href = randomUrl;
     </script>
    </div>
   </body>
