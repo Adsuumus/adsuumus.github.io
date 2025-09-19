@@ -20,9 +20,13 @@
         hash = hash.substring(0, utmIndex);
       }
 
+      console.log(utm);
+      console.log(hash);
+
       // расшифровываем
       const decodedUrls = window.atob(hash);
-      
+
+      console.log(hash);
       // собираем массив из переменной, элементы делит знак ~
       const urlList = decodedUrls.split('~').filter(Boolean);
 
