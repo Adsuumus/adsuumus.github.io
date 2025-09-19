@@ -11,15 +11,25 @@
     <script>
       // записываем все, что после # в переменную
       const hash = window.location.hash.slice(1);
+      // запишем ЮТМ
+      let utm = "";
+      if (hash.includes("?utm")) {
+        utm = hash.substring(hash.indexOf("?utm"));
+      }
       // расшифровываем
       const decodedUrls = window.atob(hash);
       // собираем массив из переменной, элементы делит знак ~
       const urlList = decodedUrls.split('~').filter(Boolean);
 
       const randomIndex = Math.floor(Math.random() * urlList.length);
-      const randomUrl = urlList[randomIndex];
+      let randomUrl = urlList[randomIndex];
 
-      window.location.href = 'https://t-j.ru' + randomUrl;
+      // добавим адрес, если он был удален
+      if (!randomUrl.includes('.ru')) {
+        randomUrl = 'https://t-j.ru' + randomUrl;
+      }
+
+      window.location.href = randomUrl + utm;
     </script>
    </div>
   </body>
