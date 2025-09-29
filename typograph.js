@@ -73,8 +73,6 @@ function main(text) {
         text = blockCreator(text);
     }
 
-    text = presentation(text);
-
     if (activeFormat === 'easy') {
         text = clean(text);
     }
@@ -83,7 +81,10 @@ function main(text) {
         text = addPadding(text);
     }
 
+    text = presentation(text);
+
     text = escapeHtml(text);
+
     text = highlight(text);
 
     return text;
@@ -105,9 +106,11 @@ function linksCreator(text) {
 }
 
 function clean(text) {
-    text = text.replace(/<p>/g, '').replace(/<b>|<\/b>/g, '').replace(/<\/p>/, '\n\n');
+    const cleaner = /\n\n\n/g;
+
     text = linksCreator(text)
 
+    text = text.replace(/<\/p>/g, '\n\n').replace(/<p>|<\/p>/g, '').replace(/<b>|<\/b>/g, '').replace(cleaner, '\n')
     return text;
 }
 
@@ -631,7 +634,7 @@ function highlight(text) {
 
 function presentation(text) {
     const cleaner = /\n\n\n/g;
-    const listEnd = /(<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>)/g;
+    const listEnd = /(<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>|<\/btn[\s\S]*?>)/g;
     const listStart = /(<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
     const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>)/g;
 
