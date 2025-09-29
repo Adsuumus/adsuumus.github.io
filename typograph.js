@@ -170,7 +170,8 @@ function cleanHtml(text) {
         .replace(/&nbsp;/g, " ")
         .replace(/^\n+|\n+$/g, "")
         .replace(/\u00AD/g, "")
-        .replace(/\u200b/g, "");
+        .replace(/\u200b/g, "")
+        .replace(/\[<br\s\S]*?>/g, "<br>");
 
     text = text.replace(/<meta[^>]*>/g, "");
     text = text.replace(/<br class="Apple-interchange-newline">/g, "");
