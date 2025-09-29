@@ -1,35 +1,20 @@
 let activeFormat = "tj";
 
 window.addEventListener("load", () => {
-    const savedFormat = localStorage.getItem("activeFormat");
-    if (savedFormat) {
-        activeFormat = savedFormat;
-    }
-
-    document.querySelectorAll(".radio-button").forEach((btn) =>
-        btn.classList.remove("active")
-    );
-
-    const activeBtn = document.querySelector(`.radio-button[data-value="${activeFormat}"]`);
-    if (activeBtn) {
-        activeBtn.classList.add("active");
-    }
-
     document.getElementById("typograph-container").focus();
 });
+
+document
+    .querySelector('.radio-button[data-value="tj"]')
+    .classList.add("active");
 
 document.querySelectorAll(".radio-button").forEach((button) => {
     button.addEventListener("click", function () {
         document
             .querySelectorAll(".radio-button")
             .forEach((btn) => btn.classList.remove("active"));
-
         this.classList.add("active");
-
         activeFormat = this.getAttribute("data-value");
-
-        localStorage.setItem("activeFormat", activeFormat);
-
         updateTypograph();
         document.getElementById("typograph-container").focus();
     });
@@ -41,8 +26,7 @@ function updateTypograph() {
     const clipboardData = window.savedDirtyData;
 
     if (clipboardData) {
-        const cleanData = main(clipboardData);
-        editableDiv.innerHTML = cleanData;
+        editableDiv.innerHTML = main(clipboardData);
     }
 }
 
@@ -63,56 +47,66 @@ document
         }
     });
 
-// document
-//     .getElementById("downloadButton")
-//     .addEventListener("click", () => {
-//         const text = document.getElementById("typograph-container").textContent;
-//         const blob = new Blob([text], {type: "text/html"});
-//         const url = URL.createObjectURL(blob);
-//         const a = document.createElement("a");
-//         a.href = url;
-//         a.download = "document.html";
-//         document.body.appendChild(a);
-//         a.click();
-//         document.body.removeChild(a);
-//         URL.revokeObjectURL(url);
-//     });
-
 function main(text) {
     text = decodeHtml(text);
+    text = cleanHtml(text);
 
-    text = saveTags(text);
 
-    text = removeTags(text);
-
-    // экранируем содержимое тегов от типографа
     const tags = [];
     text = text.replace(/<[^>]*>/g, (match) => {
         tags.push(match);
         return `__TAG_${tags.length - 1}__`;
     });
 
-    // типографика
     text = highlightDashes(text);
 
     text = typography(text);
 
     text = formattingDate(text);
 
-    // возвращаем содержимое тегов
     text = text.replace(/__TAG_(\d+)__/g, (match, index) => {
         return tags[parseInt(index, 10)];
     });
 
-    text = links(text);
-    text = addPaddingToTags(text);
+    if (activeFormat !== 'easy') {
+        text = bridge(text);
+        text = blockCreator(text);
+    }
+
+    text = presentation(text);
 
     if (activeFormat === 'easy') {
-        text = cleaner(text);
+        text = clean(text);
+    }
+
+    if (activeFormat === 'bs') {
+        text = addPadding(text);
     }
 
     text = escapeHtml(text);
     text = highlight(text);
+
+    return text;
+}
+
+const regex = /<a\s+href="([^"]+)">([^<]+)<\/a>/g;
+
+function linksCreator(text) {
+    text = text.replace(regex, (match, href, linkText) => {
+        if (activeFormat === "tj" || activeFormat === "easy") {
+            return `<a href="${href}" target="_blank" style="text-decoration: none; color: #1414cc"><span class="dm_col-B2BDFF link2-und-hov" style="color: #1414cc">${linkText}</span></a>`;
+        } else if (activeFormat === "bs") {
+            return `<a href="${href}" target="_blank" style="text-decoration: none; color: #0068ff"><span class="dm-col-66A3FF" style="color: #0068ff">${linkText}</span></a>`;
+        } else {
+            return `<a class="link-interactive" href="${href}" target="_blank">${linkText}</a>`;
+        }
+    });
+    return text;
+}
+
+function clean(text) {
+    text = text.replace(/<p>/g, '').replace(/<b>|<\/b>/g, '').replace(/<\/p>/, '\n\n');
+    text = linksCreator(text)
 
     return text;
 }
@@ -122,113 +116,387 @@ function decodeHtml(html) {
     return doc.body.innerHTML;
 }
 
-function saveTags(text) {
-    const regex = /<span[^>]*style="[^"]*font-weight:700;[^"]*">(.*?)<\/span>/g;
+const styleMap = [
+    { regex: /font-weight:700/i, type: 'tag', value: 'b' },
+    { regex: /font-style:italic/i, type: 'tag', value: 'i' },
+    { regex: /font-size:10pt/i, type: 'tag', value: 'label' },
+    { regex: /background-color:#ffff00/i, type: 'mark', value: '&yelloow;' },
+    { regex: /background-color:#efefef/i, type: 'mark', value: '&grey;' },
+    { regex: /background-color:#d9ead3/i, type: 'mark', value: '&green;' },
+    { regex: /background-color:#e6b8af/i, type: 'mark', value: '&red;' },
+    { regex: /background-color:#0000ff/i, type: 'mark', value: '&blue;' }
+];
 
-    text = text.replace(regex, (match, content) => {
-        return `<b>${content}</b>`;
+function marker(text) {
+    const parts = text.split("<p");
+
+    const processed = parts.map((part, index) => {
+        if (index === 0) return part;
+
+        const hasAll =
+            part.includes("background-color") &&
+            part.includes("[") &&
+            part.includes("]") &&
+            part.includes("href");
+
+        part = part.replace(/<span[^>]*style="([^"]*)"[^>]*>(.*?)<\/span>/gi, (_, style, content) => {
+            style = style.toLowerCase();
+            for (const map of styleMap) {
+                if (map.regex.test(style)) {
+                    if (map.type === 'tag') {
+                        return `<${map.value}>${content}</${map.value}>`;
+                    }
+                    if (map.type === 'mark' && hasAll) {
+                        return `${map.value}${content}`;
+                    }
+                }
+            }
+            return content;
+        });
+
+        return "<p" + part;
     });
 
-    const quote = /<span[^>]*font-style:italic;[^>]*>(.*?)<\/span>/g;
+    text = processed.join("");
 
-    text = text.replace(quote, (match, content) => {
-        return `<q1>${content}</q1>`;
-    });
-
-    const yellow = /(?<=<a[^>]*?>)<span[^>]*style="[^"]*background-color:#ffff00;[^"]*"[^>]*>(.*?)<\/span>/g;
-
-    text = text.replace(yellow, (match, content) => {
-        return `<yellow>${content}`;
-    });
-
-    const list = /<li[^>]*><p[^>]*>(.*?)<\/p><\/li>/g;
-    text = text.replace(list, (match, content) => {
-        return `<li>${content}</li>`;
-    });
-
-    const test = /<p[^>]*><span[^>]*>\/Карточка:<\/span><\/p>/g;
-    text = text.replace(test, `<isee>Карточка статьи:</isee>`);
-
-    text = text.replace(/<h(\d)[^>]*>/g, `<h$1>`);
-    text = text.replace(/<p[^>]*>/g, `<p>`);
-    text = text.replace(/<li[^>]*>/g, `<li>`);
-    text = text.replace(/<ol[^>]*>/g, `<ol>`);
-    text = text.replace(/<ul[^>]*>/g, `<ul>`);
-
-    text = text.replace(/<h1/g, `<h2`).replace(/<\/h1/g, `</h2`);
+    text = text.replace(/<span[^>]*>/g, '')
+        .replace(/<\/span>/g, '');
 
     return text;
 }
 
-function cleaner(text) {
-    return text.replace(/<p>|<\/p>\n\n/g, '').replace(/<b>|<\/b>/g, '')
-}
-
-function removeTags(text) {
+function cleanHtml(text) {
     text = text
         .replace(/&nbsp;/g, " ")
         .replace(/^\n+|\n+$/g, "")
         .replace(/\u00AD/g, "")
         .replace(/\u200b/g, "");
 
-    const allowedTags = ["a", "b", "li", "ol", "ul", "isee", "q1", "img", "p", "h1", "h2", "h3", "h4", "h5", "h6", "br",];
-
-    text = text.replace(/<\/?([a-zA-Z0-9-]+)[^>]*>/g, (match, tag) => {
-        return allowedTags.includes(tag) ? match : "";
-    });
+    text = text.replace(/<meta[^>]*>/g, "");
     text = text.replace(/<br class="Apple-interchange-newline">/g, "");
 
-    const emojiRegex = /(\p{Emoji}\u200D[\p{Emoji}\u200D]*(?:\p{Emoji_Presentation}|\p{Emoji})|[0-9#*]\uFE0F?\u20E3|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Presentation})/gu;
-    text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
-
-    text = text.replace(/<\/em><em>/g, "");
-
-    text = text.replace(/<b><em>([\s\S]*?)<\/em>/g, "<em>$1<\/em><b>");
-
-    text = text.replace(/<p><q1>([\s\S]*?)<\/q1><\/p>/g, "<q>$1</q>");
-    text = text.replace(/<p><q1>([\s\S]*?)<\/q1><\/a><\/p>/g, "<q>$1</a></q>");
-
-    text = text.replace(/<q1>|<\/q1>/g, "");
-
-    text = text.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
-
-    text = text.replace(/<p><a href="([^"]+)"><b>(.*?)<\/b><\/a><\/p>/g, '<h2 href="$1">$2</h2>');
-
-    text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<$1 href="$2">\n$3\n</$1>');
+    text = marker(text);
 
     // чистим b
     text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
     text = text.replace(/<b><\/b>|\n<\/b>/g, "");
     text = text.replace(/<\/b>$/, "");
     text = text.replace(/<b [^>]*>/g, "");
-
     text = text.replace(/<b> ([\s\S]*?)<\/b>/g, " <b>$1</b>");
     text = text.replace(/<b>([\s\S]*?) <\/b>/g, "<b>$1</b> ");
+    text = text.replace(/<b><\/b>/g, "");
 
+
+    text = text.replace(/<(p|li|ol|ul)[^>]*>/g, '<$1>');
+
+    const list = /<li[^>]*><p[^>]*>(.*?)<\/p><\/li>/g;
+    text = text.replace(list, (match, content) => {
+        return `<li>${content}</li>`;
+    });
+
+    text = text.replace(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi, '<h2>$1</h2>');
+
+    //двигаем лейбл из-за г-докс
+    text = text.replace(
+        /<\/label><label>/,
+        ''
+    );
+    text = text.replace(
+        /<h2>((?:<label>[\s\S]*?<\/label>)+)((?:<a[\s\S]*?<\/a>))<\/h2>/,
+        '$1\n<h2>$2</h2>'
+    );
+
+
+    text = text.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
+    //text = text.replace(/<h1/g, `<h2`).replace(/<\/h1/g, `</h2`);
+    // text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<$1 href="$2">\n$3\n</$1>');
+    text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<h2 href="$2">\n$3\n</h2>');
+
+    // делаем кнопки
+    text = buttonCreator(text);
+
+    // сделать это в конце
+    // text = text.replace(/(<\/h2>)|(<\/p>)|(<br \/>)/g, "$&\n");
+
+    const emojiRegex = /(\p{Emoji}\u200D[\p{Emoji}\u200D]*(?:\p{Emoji_Presentation}|\p{Emoji})|[0-9#*]\uFE0F?\u20E3|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Presentation})/gu;
+    text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
+
+    //работаем с эмоджи
     text = text.replace(/(<p>\s*<em>[^<]*<\/em>[\s\S]*?<\/p>\s*){2,}/g, "<el>$&</el>");
-
     text = text.replace(/<\/el><el>/g, "");
     text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
         return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
     });
 
-    //цитаты
 
-    text = text
-        .replace(/<p><a href="([^"]+)">([^<]*)<\/a><\/p><p>([^<]*)<\/p>((<q>.*?<\/q>\s*)+)/g, '<quote name="$2" desc="$3" src="https://static2.tinkoffjournal.ru/fama/tj_prod/static/default_avatars/default_avatar_1.png" href="$1">\n$4</quote>')
-        .replace(/<p><a href="([^"]+)">([^<]*)<\/a><\/p>((<q>.*?<\/q>\s*)+)/g, '<quote name="$2" src="https://static2.tinkoffjournal.ru/fama/tj_prod/static/default_avatars/default_avatar_1.png" href="$1">\n$3</quote>');
+    return cleaner(text, ['\/label']);
+}
 
-    //картинки
+function buttonCreator(text) {
 
-    text = text.replace(/<p>(<img[^>]*>)<\/p>/g, "$1");
+    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `</btn-y name="$2" href="$1">`)
+        .replace(/\[<a\s+href="([^"]+)">&red;([^<]+)<\/a>\]/g, `</btn-r name="$2" href="$1">`)
+        .replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, `</btn name="$2" href="$1">`)
+        .replace(/<a\s+href="([^"]+)">&red;\[([^<]+)\]<\/a>/g, `</btn-r name="$2" href="$1">`)
+        .replace(/<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g, `</btn name="$2" href="$1">`)
+        .replace(/<a\s+href="([^"]+)">\[([^<]+)<\/a>\]/g, `</btn name="$2" href="$1">`)
+        .replace(/\[<a\s+href="([^"]+)">([^<]+)\]<\/a>/g, `</btn name="$2" href="$1">`)
+        .replace(/&grey;\[анкета\[<a href="([^"]+)">&grey;([^"]+)<\/a>&grey;\]\]/g, `</anketa-grey name="$2" href="$1">`);
 
-    text = text.replace(/<img([^>]*?)\s+src="([^"]+)".*?>/g, '<img src="$2">');
+    return cleaner(text, ['\/btn', '\/anketa']);
+}
 
-    text = text
-        .replace(/<p><a([^>]*?)><img([^>]*?)><\/a><\/p>/g, '</imgage border="0"$1$2>')
-        .replace(/<img([^>]*?)>/g, '</image border="0"$1>');
+function cleaner(str, words) {
+    return str.replace(/<p>([\s\S]*?)<\/p>/gi, (match, content) => {
+        if (words.some(word => content.includes(word))) {
+            return `${content}`;
+        }
+        return match;
+    });
+}
+
+const states = {
+    "Карточка статьи:": "card",
+    "Карточки статьи:": "card",
+    "Блок:": "block",
+    "Блок с картинкой:": "blockImage",
+    "Карточка статьи без обложки:": "cardNoCover",
+    "Карточка с деталями:": "cardDetails",
+    "Баннер:": "banner",
+    "Квадратные обложки (социокнопки):": "squareCoversSocial",
+    "Квадратные обложки (описания):": "squareCoversDesc",
+    "Статьи с комментами:": "articleComments",
+    "Квадратные обложки:": "picList",
+    "Статьи с автором:": "articleAuthor"
+};
+
+function bridge(text) {
+    text = cleaner(text, Object.keys(states));
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    const lines = text.split(/\r?\n/);
+    let state = "default";
+    let emptyCount = 0;
+    const output = [];
+
+    for (let line of lines) {
+        line = line.trim();
+
+        if (!line) {
+            emptyCount++;
+            if (emptyCount >= 2 && state !== "default") {
+                output.push(`<!--${state}-end-->`);
+                state = "default";
+                emptyCount = 0;
+            }
+            continue;
+        }
+
+        emptyCount = 0;
+
+        if (states[line]) {
+            if (state !== "default") {
+                output.push(`<!--${state}-end-->`);
+            }
+            state = states[line];
+            output.push(`<!--${state}-start-->`);
+        } else {
+            output.push(bridgeFormatter(line, state));
+        }
+    }
+
+    if (state !== "default") {
+        output.push(`<!--${state}-end-->`);
+    }
+
+    return output.join("");
+}
+
+const shortcodes =
+    {
+        "card"
+            :
+            "card",
+        "squareCoversDesc"
+            :
+            "pic-list-desc",
+        "articleComments"
+            :
+            "article-comments",
+        "picList"
+            :
+            "pic-list",
+        "articleAuthor"
+            :
+            "article-author"
+    };
+
+function bridgeFormatter(text, state) {
+    let test = false;
+
+// проверим, в каком формате карточки в доке
+    if (state === 'card') {
+        for (const match of text.matchAll(regex)) {
+            if (match[2].includes('https://t-j.ru/')) {
+                test = true;
+                break;
+            }
+        }
+    }
+
+    if (state === 'picList' || state === 'articleAuthor' || state === 'articleComments' || state === 'squareCoversSocial' || state === 'squareCoversDesc' ) {
+        text = text.replace(regex, (match, href, linkText) => {
+            return `<${shortcodes[state]} href="${href}">\n${linkText}\n<\/${shortcodes[state]}>`;
+        });
+    } else if (state === 'card' && test) {
+        text = text.replace(regex, (match, href, linkText) => {
+            return `<h2 href="${href}">\n${linkText}\n</h2>`;
+        });
+    } else {
+        text = linksCreator(text);
+    }
+
+    return cleaner(text, ['h2', `${shortcodes[state]}`]);
+}
+
+function blockCreator(text) {
+    const regexCard = /<!--card-start-->([\s\S]*?)<!--card-end-->/g;
+    const regexBlock = /<!--block-start-->([\s\S]*?)<!--block-end-->/g;
+    const regexPic = /<!--picList-start-->([\s\S]*?)<!--picList-end-->/g;
+
+    text = text.replace(regexCard, (match, content) => {
+        //здесь можно паддинги добавить
+        content = addPadding(content, 'card');
+        return cardCreator(content);
+    });
+
+    text = text.replace(regexPic, (match, content) => {
+        //здесь можно паддинги добавить
+        content = addPadding(content, 'default');
+        return `<block class="pad-b-0 pad-t-25" pad="25,5">${content}<\/block>`;
+    });
+
+    text = text.replace(regexBlock, (match, content) => {
+        //здесь можно паддинги добавить
+        content = addPadding(content, 'default');
+        return `<block class="pad-b-20 pad-t-20" pad="25,25">${content}<\/block>`;
+    });
+
 
     return text;
+}
+
+function addPadding(text, state) {
+    const tagRegex = /<(h2|p(?=\s|>)|ul|\/image|el|ol)([^>]*)>/g;
+    const quoteRegex = /<quote[^>]*>([\s\S]*?)<\/quote>/g;
+
+    let tags = [];
+    let match;
+
+    let quotedTexts = [];
+    while ((match = quoteRegex.exec(text)) !== null) {
+        quotedTexts.push({
+            start: match.index, end: match.index + match[0].length, content: match[1],
+        });
+    }
+
+    while ((match = tagRegex.exec(text)) !== null) {
+        tags.push({
+            tagName: match[1], fullTag: match[0], index: match.index,
+        });
+    }
+
+    let result = text;
+
+    tags.forEach((tag, i) => {
+        let padValue = 0;
+
+        const nextTag = tags[i + 1];
+        const prevTag = tags[i - 1];
+
+        const isInsideQuote = quotedTexts.some((quote) => tag.index >= quote.start && tag.index <= quote.end);
+
+        if (activeFormat === "tj") {
+            if (tag.tagName === "p") {
+                if (isInsideQuote) {
+                    padValue = "15,0";
+                } else if (nextTag?.tagName === "p") {
+                    padValue = "0,20";
+                } else if (nextTag?.tagName === "ul") {
+                    padValue = "0,10";
+                } else if (nextTag?.tagName === "el") {
+                    padValue = "0,10";
+                } else if (nextTag?.tagName === "ol") {
+                    padValue = "0,10";
+                } else if (nextTag?.tagName === "/image") {
+                    padValue = "0,30";
+                } else {
+                    padValue = "0,0";
+                }
+            } else if (tag.tagName === "h2") {
+                if (state === 'card') {
+                    padValue = "0,10";
+                }
+                else {
+                    padValue = "0,20";
+                }
+            }
+        } else if (activeFormat === "bs") {
+            if (tag.tagName === "p") {
+                if (prevTag?.tagName === "p") {
+                    padValue = "12,0";
+                } else if (nextTag?.tagName === "ul") {
+                    padValue = "12,0";
+                } else {
+                    padValue = "12,0";
+                }
+            } else if (tag.tagName === "h2") {
+                if (prevTag?.tagName === "p") {
+                    padValue = "48,0";
+                } else {
+                    padValue = "0,0";
+                }
+            }
+        }
+        if (padValue != 0) {
+            const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(tag.tagName.length + 1)}`;
+            result = result.replace(tag.fullTag, newTag);
+        } else return;
+    });
+
+    return result;
+}
+
+function cardCreator(text) {
+    const regexTag = /(<label>[\s\S]*?<\/label>\s*)?<(h2)[^>]*>[\s\S]*?<\/\2>/gi;
+
+    let result = '';
+    let lastIndex = 0;
+    let openCard = false;
+    let match;
+
+    while ((match = regexTag.exec(text)) !== null) {
+        if (openCard) {
+            result += text.slice(lastIndex, match.index);
+            result += `</card>`;
+        } else {
+            result += text.slice(lastIndex, match.index);
+        }
+
+        const hrefMatch = match[0].match(/href="([^"]+)"/i);
+        const href = hrefMatch ? hrefMatch[1] : '#';
+
+        result += `<card href="${href}">` + match[0];
+
+        lastIndex = regexTag.lastIndex;
+        openCard = true;
+    }
+
+    if (openCard) {
+        result += text.slice(lastIndex);
+        result += `</card>`;
+    }
+
+    return `${result}`;
 }
 
 function formattingDate(text) {
@@ -341,132 +609,6 @@ function highlightDashes(text) {
     return result.join(" ");
 }
 
-function links(text) {
-    const sq = /<p>Картинка квадратная:(.*?)<br>/gs;
-    text = text.replace(sq, (match) => match
-        .replace(/\<a\s+href="([^"]+)">([^<]+)<\/a>/g, (match, href, linkText) => {
-            return `\n</pic-list title="${linkText}" href="${href}">\n`;
-        })
-        .replace(/<p>|<\/p>|Картинка квадратная:/g, ""));
-
-    text = text.replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, (match, href, linkText) => {
-        return `</btn name="${linkText}" href="${href}">`;
-    });
-
-    text = text.replace(/<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g, (match, href, linkText) => {
-        return `</btn name="${linkText}" href="${href}">`;
-    });
-
-    text = text.replace(/<p><\/btn([^>]*)><\/p>/g, "</btn$1>\n\n");
-
-    text = text.replace(/<a\s+href="([^"]+)">([^<]+)<\/a>/g, (match, href, linkText) => {
-        if (activeFormat === "tj" || activeFormat === "easy") {
-            return `<a href="${href}" target="_blank" style="text-decoration: none; color: #1414cc"><span class="dm_col-B2BDFF link2-und-hov" style="color: #1414cc">${linkText}</span></a>`;
-        } else if (activeFormat === "bs") {
-            return `<a href="${href}" target="_blank" style="text-decoration: none; color: #0068ff"><span class="dm-col-66A3FF" style="color: #0068ff">${linkText}</span></a>`;
-        } else {
-            return `<a class="link-interactive" href="${href}" target="_blank">${linkText}</a>`;
-        }
-    });
-
-    return text;
-}
-
-function addPaddingToTags(text) {
-    text = text.replace(/<q>/g, "<p>").replace(/<\/q>/g, "</p>");
-    text = text.replace(/<(p)>/g, "<$1>\n");
-
-    text = text.replace(/<(\/p)>/g, "\n<$1>\n\n");
-    text = text.replace(/<\/p>\s*<\/quote>/g, "</p>\n</quote>\n\n");
-    text = text.replace(/<(\/h(\d))>/g, "<$1>\n\n");
-
-    text = text.replace(/<li><em>([^<]*)<\/em>/g, "<em>\n$1\n<\/em>\n<li>");
-    text = text.replace(/<(\/li)>/g, "\n<$1>\n");
-    text = text.replace(/<(li)>/g, "<$1>\n");
-    text = text.replace(/<(el|ul|ol)>/g, "<$1>\n");
-    text = text.replace(/<(\/ul|\/ol|\/el)>/g, "<$1>\n\n");
-
-    text = text.replace(/<img([^>]*?)>/g, "<img $1>\n\n");
-
-    const tagRegex = /<(h2|p|ul|\/image|el|ol)([^>]*)>/g;
-    const quoteRegex = /<quote[^>]*>([\s\S]*?)<\/quote>/g;
-
-    let tags = [];
-    let match;
-
-    let quotedTexts = [];
-    while ((match = quoteRegex.exec(text)) !== null) {
-        quotedTexts.push({
-            start: match.index, end: match.index + match[0].length, content: match[1],
-        });
-    }
-
-    while ((match = tagRegex.exec(text)) !== null) {
-        tags.push({
-            tagName: match[1], fullTag: match[0], index: match.index,
-        });
-    }
-
-    let result = text;
-
-    tags.forEach((tag, i) => {
-        let padValue = 0;
-
-        const nextTag = tags[i + 1];
-        const prevTag = tags[i - 1];
-
-        const isInsideQuote = quotedTexts.some((quote) => tag.index >= quote.start && tag.index <= quote.end);
-
-        if (activeFormat === "tj") {
-            if (tag.tagName === "p") {
-                if (isInsideQuote) {
-                    padValue = "15,0";
-                } else if (nextTag?.tagName === "p") {
-                    padValue = "0,20";
-                } else if (nextTag?.tagName === "ul") {
-                    padValue = "0,10";
-                } else if (nextTag?.tagName === "el") {
-                    padValue = "0,10";
-                } else if (nextTag?.tagName === "ol") {
-                    padValue = "0,10";
-                } else if (nextTag?.tagName === "/image") {
-                    padValue = "0,30";
-                } else {
-                    padValue = "0,0";
-                }
-            } else if (tag.tagName === "h2") {
-                if (nextTag?.tagName === "p") {
-                    padValue = "0,20";
-                } else {
-                    padValue = "0,0";
-                }
-            }
-        } else if (activeFormat === "bs") {
-            if (tag.tagName === "p") {
-                if (prevTag?.tagName === "p") {
-                    padValue = "12,0";
-                } else if (nextTag?.tagName === "ul") {
-                    padValue = "12,0";
-                } else {
-                    padValue = "12,0";
-                }
-            } else if (tag.tagName === "h2") {
-                if (prevTag?.tagName === "p") {
-                    padValue = "48,0";
-                } else {
-                    padValue = "0,0";
-                }
-            }
-        }
-        if (padValue != 0) {
-            const newTag = `<${tag.tagName} pad="${padValue}"${tag.fullTag.slice(tag.tagName.length + 1)}`;
-            result = result.replace(tag.fullTag, newTag);
-        } else return;
-    });
-
-    return result;
-}
-
 function escapeHtml(text) {
     text = text.replace(/<br>/g, "");
     const map = {
@@ -477,9 +619,24 @@ function escapeHtml(text) {
 }
 
 function highlight(text) {
+    // const regex = /&[a-zA-Z0-9#]+;/g;
     const regex1 = /(&amp;nbsp;)/g;
     const regex2 = /(&amp;#8288;)/g;
+
     return text
         .replace(regex1, `<span style="color: #f22b71">$1</span>`)
         .replace(regex2, `<span style="color: #f22b71;">$1</span>`);
+}
+
+function presentation(text) {
+    const cleaner = /\n\n\n/g;
+    const listEnd = /(<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>)/g;
+    const listStart = /(<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
+    const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>)/g;
+
+    const base = /(<\/p[\s\S]*?>|<\/card>)/g;
+
+    return text.replace(listEnd, `$1\n\n`).replace(listStart, `$1\n`).replace(listInner, `\n$1\n`)
+        .replace(base, `\n$1\n\n`)
+        .replace(cleaner, `\n`)
 }
