@@ -93,7 +93,7 @@ function main(text) {
         return tags[parseInt(index, 10)];
     });
 
-    if (activeFormat === 'tj') {
+    if (activeFormat !== 'easy') {
         text = bridge(text);
         text = blockCreator(text);
     }
