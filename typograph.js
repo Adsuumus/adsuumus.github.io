@@ -1,34 +1,39 @@
 let activeFormat = "tj";
 
 window.addEventListener("load", () => {
+    const savedFormat = localStorage.getItem("activeFormat");
+    if (savedFormat) {
+        activeFormat = savedFormat;
+    }
+
+    document.querySelectorAll(".radio-button").forEach((btn) =>
+        btn.classList.remove("active")
+    );
+
+    const activeBtn = document.querySelector(`.radio-button[data-value="${activeFormat}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add("active");
+    }
+
     document.getElementById("typograph-container").focus();
 });
-
-document
-    .querySelector('.radio-button[data-value="tj"]')
-    .classList.add("active");
 
 document.querySelectorAll(".radio-button").forEach((button) => {
     button.addEventListener("click", function () {
         document
             .querySelectorAll(".radio-button")
             .forEach((btn) => btn.classList.remove("active"));
+
         this.classList.add("active");
+
         activeFormat = this.getAttribute("data-value");
+
+        localStorage.setItem("activeFormat", activeFormat);
+
         updateTypograph();
         document.getElementById("typograph-container").focus();
     });
 });
-
-
-function updateTypograph() {
-    const editableDiv = document.getElementById("typograph-container");
-    const clipboardData = window.savedDirtyData;
-
-    if (clipboardData) {
-        editableDiv.innerHTML = main(clipboardData);
-    }
-}
 
 document
     .getElementById("typograph-container")
@@ -47,10 +52,30 @@ document
         }
     });
 
+function updateTypograph() {
+    const editableDiv = document.getElementById("typograph-container");
+    const clipboardData = window.savedDirtyData;
+
+    if (clipboardData) {
+        editableDiv.innerHTML = main(clipboardData);
+    }
+}
+
+const statecode = [
+    {doc: 'Карточка статьи:', state: 'card', shortcode: 'card'},
+    {doc: 'Карточки статьи:', state: 'card', shortcode: 'card'},
+    {doc: 'Квадратные обложки:', state: 'picList', shortcode: 'pic-list'},
+    {doc: 'Блок:', state: 'block', shortcode: 'block'},
+    {doc: 'Статьи с комментами:', state: 'articleComments', shortcode: 'article-comments'},
+    {doc: 'Блок с картинкой:', state: 'blockImage', shortcode: 'block-img'},
+];
+
+const states = Object.fromEntries(statecode.map(el => [el.doc, el.state]));
+const shortcodes = Object.fromEntries(statecode.map(el => [el.state, el.shortcode]));
+
 function main(text) {
     text = decodeHtml(text);
     text = cleanHtml(text);
-
 
     const tags = [];
     text = text.replace(/<[^>]*>/g, (match) => {
@@ -259,53 +284,38 @@ function cleaner(str, words) {
     });
 }
 
-const states = {
-    "Карточка статьи:": "card",
-    "Карточки статьи:": "card",
-    "Блок:": "block",
-    "Блок с картинкой:": "blockImage",
-    "Карточка статьи без обложки:": "cardNoCover",
-    "Карточка с деталями:": "cardDetails",
-    "Баннер:": "banner",
-    "Квадратные обложки (социокнопки):": "squareCoversSocial",
-    "Квадратные обложки (описания):": "squareCoversDesc",
-    "Статьи с комментами:": "articleComments",
-    "Квадратные обложки:": "picList",
-    "Статьи с автором:": "articleAuthor"
-};
-
 function bridge(text) {
-    text = cleaner(text, Object.keys(states));
     text = text.replace(/<br\s*\/?>/gi, "\n");
-    const lines = text.split(/\r?\n/);
-    let state = "default";
-    let emptyCount = 0;
+
     const output = [];
+    let state = "default";
 
-    for (let line of lines) {
-        line = line.trim();
+    const stateRegex = new RegExp(`(<p>(${Object.keys(states).join("|")})</p>)`, "gi");
 
-        if (!line) {
-            emptyCount++;
-            if (emptyCount >= 2 && state !== "default") {
-                output.push(`<!--${state}-end-->`);
-                state = "default";
-                emptyCount = 0;
-            }
-            continue;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = stateRegex.exec(text)) !== null) {
+        const before = text.slice(lastIndex, match.index).trim();
+
+        if (before) {
+            output.push(bridgeFormatter(before, state));
         }
 
-        emptyCount = 0;
-
-        if (states[line]) {
-            if (state !== "default") {
-                output.push(`<!--${state}-end-->`);
-            }
-            state = states[line];
-            output.push(`<!--${state}-start-->`);
-        } else {
-            output.push(bridgeFormatter(line, state));
+        if (state !== "default") {
+            output.push(`<!--${state}-end-->`);
         }
+
+        const newStateKey = match[2];
+        state = states[newStateKey] || "default";
+        output.push(`<!--${state}-start-->`);
+
+        lastIndex = stateRegex.lastIndex;
+    }
+
+    const remaining = text.slice(lastIndex).trim();
+    if (remaining) {
+        output.push(bridgeFormatter(remaining, state));
     }
 
     if (state !== "default") {
@@ -314,25 +324,6 @@ function bridge(text) {
 
     return output.join("");
 }
-
-const shortcodes =
-    {
-        "card"
-            :
-            "card",
-        "squareCoversDesc"
-            :
-            "pic-list-desc",
-        "articleComments"
-            :
-            "article-comments",
-        "picList"
-            :
-            "pic-list",
-        "articleAuthor"
-            :
-            "article-author"
-    };
 
 function bridgeFormatter(text, state) {
     let test = false;
@@ -635,10 +626,10 @@ function highlight(text) {
 function presentation(text) {
     const cleaner = /\n\n\n/g;
     const listEnd = /(<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>|<\/btn[\s\S]*?>)/g;
-    const listStart = /(<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
+    const listStart = /(<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<block[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
     const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>)/g;
 
-    const base = /(<\/p[\s\S]*?>|<\/card>)/g;
+    const base = /(<\/p[\s\S]*?>|<\/card>|<\/block>)/g;
 
     return text.replace(listEnd, `$1\n\n`).replace(listStart, `$1\n`).replace(listInner, `\n$1\n`)
         .replace(base, `\n$1\n\n`)
