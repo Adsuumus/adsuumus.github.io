@@ -207,7 +207,7 @@ function cleanHtml(text) {
     text = marker(text);
 
     // чистим b
-    text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
+   // text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
     text = text.replace(/<b><\/b>|\n<\/b>/g, "");
     text = text.replace(/<\/b>$/, "");
     text = text.replace(/<b [^>]*>/g, "");
@@ -235,11 +235,15 @@ function cleanHtml(text) {
         '$1\n<h2>$2</h2>'
     );
 
-
     text = text.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
-    //text = text.replace(/<h1/g, `<h2`).replace(/<\/h1/g, `</h2`);
-    // text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<$1 href="$2">\n$3\n</$1>');
-    text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<h2 href="$2">\n$3\n</h2>');
+    text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<h2 href="$2">$3</h2>');
+
+    const findH = /<h[^>]*>([\s\S]*?)<\/h2>/g;
+
+    text = text.replace(findH, (match) => {
+        match = match.replace(/<b>|<\/b>/g, '')
+        return match;
+    });
 
     // делаем кнопки
     text = buttonCreator(text);
@@ -257,6 +261,8 @@ function cleanHtml(text) {
         return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
     });
 
+    //чистим б внутри ссылок
+    text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
 
     return cleaner(text, ['\/label']);
 }
