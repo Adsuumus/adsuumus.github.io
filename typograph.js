@@ -64,10 +64,17 @@ function updateTypograph() {
 const statecode = [
     {doc: 'Карточка статьи:', state: 'card', shortcode: 'card'},
     {doc: 'Карточки статьи:', state: 'card', shortcode: 'card'},
+    {doc: 'Карточка с деталями:', state: 'cardDetails', shortcode: 'card-d'},
+    {doc: 'Баннер:', state: 'banner', shortcode: 'banner'},
+    {doc: 'Блок с картинкой:', state: 'blockImg', shortcode: 'block-img'},
     {doc: 'Квадратные обложки:', state: 'picList', shortcode: 'pic-list'},
+    {doc: 'Квадратные обложки (социокнопки):', state: 'picListSoc', shortcode: 'pic-list-s'},
+    {doc: 'Квадратные обложки (описания):', state: 'picListDesc', shortcode: 'pic-list-d'},
     {doc: 'Блок:', state: 'block', shortcode: 'block'},
     {doc: 'Статьи с комментами:', state: 'articleComments', shortcode: 'article-comments'},
-    {doc: 'Блок с картинкой:', state: 'blockImage', shortcode: 'block-img'},
+    {doc: 'Статья с&nbsp;комментами:', state: 'articleComments', shortcode: 'comments-list'},
+    {doc: 'Статьи с автором:', state: 'articleAuthor', shortcode: 'author-list'},
+    {doc: 'Блок с картинкой:', state: 'blockImage', shortcode: 'block-img'}
 ];
 
 const states = Object.fromEntries(statecode.map(el => [el.doc, el.state]));
@@ -260,11 +267,28 @@ function cleanHtml(text) {
     text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
         return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
     });
+    text = text.replace(/<li>\s*<em>([^<]*)<\/em>/g, `<em>\n$1\n<\/em><li>`);
 
     //чистим б внутри ссылок
     text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
 
+    text = quoteMaker(text);
+
     return cleaner(text, ['\/label']);
+}
+
+function quoteMaker(text) {
+    const quote = /<p><i>([\s\S]*?)<\/i><\/p>/g;
+
+    text = text.replace(quote, (match) => {
+        match = match.replace(/<i>|<\/i>/g, '')
+
+        return `<quote>${match}<\/quote>`;
+    });
+
+    text = text.replace(/<\/quote>(<br>)+<quote>|<\/i><i>/g, '')
+    text = text.replace(/<p><br>/g, '<p>')
+    return text;
 }
 
 function buttonCreator(text) {
@@ -631,13 +655,13 @@ function highlight(text) {
 
 function presentation(text) {
     const cleaner = /\n\n\n/g;
-    const listEnd = /(<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>|<\/btn[\s\S]*?>)/g;
-    const listStart = /(<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<block[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
+    const listEnd = /(<\/quote>|<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>|<\/btn[\s\S]*?>)/g;
+    const listStart = /(<quote>|<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<block[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
     const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>)/g;
 
     const base = /(<\/p[\s\S]*?>|<\/card>|<\/block>)/g;
 
     return text.replace(listEnd, `$1\n\n`).replace(listStart, `$1\n`).replace(listInner, `\n$1\n`)
         .replace(base, `\n$1\n\n`)
-        .replace(cleaner, `\n`)
+        .replace(cleaner, `\n`).replace(/\n<\/quote>/g, '<\/quote>')
 }
