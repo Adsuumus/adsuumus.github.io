@@ -243,7 +243,8 @@ function cleanHtml(text) {
     );
 
     text = text.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
-    text = text.replace(/<(h[1-3])>\s*<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<h2 href="$2">$3</h2>');
+
+    text = text.replace(/<(h[1-3])>([\s\S]*?)<a href="([^"]+)">(.*?)<\/a>\s*<\/\1>/g, '<h2 href="$3">$2$4</h2>');
 
     const findH = /<h[^>]*>([\s\S]*?)<\/h2>/g;
 
@@ -274,8 +275,26 @@ function cleanHtml(text) {
 
     text = quoteMaker(text);
 
+    text = emojiSize(text);
+
     return cleaner(text, ['\/label']);
 }
+
+function emojiSize(text) {
+    const insideP = /<p([\s\S]*?)<\/p>/g;
+    const insideH = /<h2([\s\S]*?)<\/h2>/g;
+
+    text = text.replace(insideP, (match) => {
+        return match.replace(/<em>/g, '<em size="15">');
+    });
+
+    text = text.replace(insideH, (match) => {
+        return match.replace(/<em>/g, '<em size="20">');
+    });
+
+    return text;
+}
+
 
 function quoteMaker(text) {
     const quote = /<p><i>([\s\S]*?)<\/i><\/p>/g;
@@ -293,14 +312,19 @@ function quoteMaker(text) {
 
 function buttonCreator(text) {
 
-    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `</btn-y name="$2" href="$1">`)
-        .replace(/\[<a\s+href="([^"]+)">&red;([^<]+)<\/a>\]/g, `</btn-r name="$2" href="$1">`)
-        .replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, `</btn name="$2" href="$1">`)
+    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `<btn-y href="$1">$2</btn-y>`)
+        .replace(/\[<a\s+href="([^"]+)">&red;([^<]+)<\/a>\]/g, `<btn-r href="$1">$2</btn-r>`)
+        .replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, `<btn href="$1">$2</btn>`)
         .replace(/<a\s+href="([^"]+)">&red;\[([^<]+)\]<\/a>/g, `</btn-r name="$2" href="$1">`)
-        .replace(/<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g, `</btn name="$2" href="$1">`)
-        .replace(/<a\s+href="([^"]+)">\[([^<]+)<\/a>\]/g, `</btn name="$2" href="$1">`)
-        .replace(/\[<a\s+href="([^"]+)">([^<]+)\]<\/a>/g, `</btn name="$2" href="$1">`)
-        .replace(/&grey;\[анкета\[<a href="([^"]+)">&grey;([^"]+)<\/a>&grey;\]\]/g, `</anketa-grey name="$2" href="$1">`);
+        .replace(/<a\s+href="([^"]+)">\[([^<]+)\]<\/a>/g, `<btn href="$1">$2</btn>`)
+        .replace(/<a\s+href="([^"]+)">\[([^<]+)<\/a>\]/g, `<btn href="$1">$2</btn>`)
+        .replace(/\[<a\s+href="([^"]+)">([^<]+)\]<\/a>/g, `<btn href="$1">$2</btn>`)
+        .replace(/&grey;\[анкета\[<a href="([^"]+)">&grey;([^"]+)<\/a>&grey;\]\]/g, `<anketa-g href="$1">$2</anketa-g>`);
+
+    if (activeFormat === "bs") {
+        text = text.replace(/btn(?!-[y])/g, 'btn-t');
+
+    }
 
     return cleaner(text, ['\/btn', '\/anketa']);
 }
@@ -397,7 +421,7 @@ function blockCreator(text) {
     text = text.replace(regexPic, (match, content) => {
         //здесь можно паддинги добавить
         content = addPadding(content, 'default');
-        return `<block class="pad-b-0 pad-t-25" pad="25,5">${content}<\/block>`;
+        return `<block class="pad-b-0 pad-t-20" pad="25,5">${content}<\/block>`;
     });
 
     text = text.replace(regexBlock, (match, content) => {
@@ -553,6 +577,10 @@ function typography(text) {
         const iz_za = /([Ии]з&#8288;[-–—−]&#8288;за)\s+([А-ЯЁа-яё]+)/g;
         text = text.replace(iz_za, (match, p1, p2) => `<span style="white-space: nowrap;">${match}</span>`);
     }
+    else {
+        text = text.replace(/«/g,"&amp;laquo;").replace(/»/g,"&amp;raquo;");
+    }
+
     /*    const IZ_ZA = /(^|\s)(из-за)(\s|$)/g;
     text = text.replace(
       IZ_ZA,
@@ -647,17 +675,21 @@ function highlight(text) {
     // const regex = /&[a-zA-Z0-9#]+;/g;
     const regex1 = /(&amp;nbsp;)/g;
     const regex2 = /(&amp;#8288;)/g;
+    const regex3 = /(&amp;laquo;)/g;
+    const regex4 = /(&amp;raquo;)/g;
 
     return text
         .replace(regex1, `<span style="color: #f22b71">$1</span>`)
-        .replace(regex2, `<span style="color: #f22b71;">$1</span>`);
+        .replace(regex2, `<span style="color: #f22b71;">$1</span>`)
+        .replace(regex3, `<span style="color: #f22b71;">$1</span>`)
+        .replace(regex4, `<span style="color: #f22b71;">$1</span>`);
 }
 
 function presentation(text) {
     const cleaner = /\n\n\n/g;
     const listEnd = /(<\/quote>|<\/ul[\s\S]*?>|<\/ol[\s\S]*?>|<\/el[\s\S]*?>|<\/btn[\s\S]*?>)/g;
-    const listStart = /(<quote>|<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<block[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>)/g;
-    const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>)/g;
+    const listStart = /(<quote>|<ul[\s\S]*?>|<ol[\s\S]*?>|<el[\s\S]*?>|<li[\s\S]*?>|<em[\s\S]*?>|<card[\s\S]*?>|<block[\s\S]*?>|<p[\s\S]*?>|<h2[\s\S]*?>|<btn[\s\S]*?>)/g;
+    const listInner = /(<\/li[\s\S]*?>|<\/em[\s\S]*?>|<\/h2[\s\S]*?>|<\/btn[\s\S]*?>)/g;
 
     const base = /(<\/p[\s\S]*?>|<\/card>|<\/block>)/g;
 
