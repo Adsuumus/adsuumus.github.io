@@ -337,7 +337,7 @@ function quoteMaker(text) {
 
 function buttonCreator(text) {
 
-    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `< btn type="y" href="$1">$2</btn>`)
+    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `<btn type="y" href="$1">$2</btn>`)
         .replace(/\[<a\s+href="([^"]+)">&red;([^<]+)<\/a>\]/g, `<btn-r href="$1">$2</btn-r>`)
         .replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, `<btn href="$1">$2</btn>`)
         .replace(/<a\s+href="([^"]+)">&red;\[([^<]+)\]<\/a>/g, `</btn-r name="$2" href="$1">`)
