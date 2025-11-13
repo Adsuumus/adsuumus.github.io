@@ -259,16 +259,11 @@ function cleanHtml(text) {
     // сделать это в конце
     // text = text.replace(/(<\/h2>)|(<\/p>)|(<br \/>)/g, "$&\n");
 
-    const emojiRegex = /(\p{Emoji}\u200D[\p{Emoji}\u200D]*(?:\p{Emoji_Presentation}|\p{Emoji})|[0-9#*]\uFE0F?\u20E3|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Presentation})/gu;
-    text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
+    //работаем с эмоджи
 
     //работаем с эмоджи
-    text = text.replace(/(<p>\s*<em>[^<]*<\/em>[\s\S]*?<\/p>\s*){2,}/g, "<el>$&</el>");
-    text = text.replace(/<\/el><el>/g, "");
-    text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
-        return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
-    });
-    text = text.replace(/<li>\s*<em>([^<]*)<\/em>/g, `<em>\n$1\n<\/em><li>`);
+     text = emoji(text);
+
 
     //чистим б внутри ссылок
     text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
@@ -277,24 +272,54 @@ function cleanHtml(text) {
 
     text = emojiSize(text);
 
+    text = listNumeric(text);
+
     return cleaner(text, ['\/label']);
+}
+
+function listNumeric(text) {
+    return text.replace(/<ol>([\s\S]*?)<\/ol>/g, (match, content) => {
+        let num = 1;
+        content = content.replace(/<li\b/g, (match) => {
+            return `<li num="${num++}"`;
+        });
+        return `<ol>${content}</ol>`;
+    });
+}
+
+function emoji(text) {
+    const emojiRegex = /(\p{Emoji}\u200D[\p{Emoji}\u200D]*(?:\p{Emoji_Presentation}|\p{Emoji})|[0-9#*]\uFE0F?\u20E3|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Presentation})/gu;
+    text = text.replace(emojiRegex, (match) => `<em>${match}</em>`);
+
+    text = text.replace(/(<p>\s*<em>[^<]*<\/em>[\s\S]*?<\/p>\s*){2,}/g, "<el>$&</el>");
+    text = text.replace(/<\/el><el>/g, "");
+    text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
+        return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
+    });
+    text = text.replace(/<el>(.*?)<\/el>/gs, (elMatch) => {
+        return elMatch.replace(/<li>(.*?)<\/li>/gs, (liMatch, liContent) => {
+            const emMatch = liContent.match(/<em>(.*?)<\/em>/s);
+            if (emMatch) {
+                const emContent = emMatch[1];
+                const newLiContent = liContent.replace(/<em>.*?<\/em>/s, '');
+                return `<li em="${emContent}">${newLiContent}</li>`;
+            } else {
+                return liMatch;
+            }
+        });
+    });
+
+    return text;
 }
 
 function emojiSize(text) {
     const insideP = /<p([\s\S]*?)<\/p>/g;
     const insideH = /<h2([\s\S]*?)<\/h2>/g;
 
-    text = text.replace(insideP, (match) => {
-        return match.replace(/<em>/g, '<em size="15">');
-    });
-
-    text = text.replace(insideH, (match) => {
-        return match.replace(/<em>/g, '<em size="20">');
-    });
-
-    return text;
+    return text
+        .replace(insideP, match => match.replace(/<em>/g, '<em size="15">'))
+        .replace(insideH, match => match.replace(/<em>/g, '<em size="20">'));
 }
-
 
 function quoteMaker(text) {
     const quote = /<p><i>([\s\S]*?)<\/i><\/p>/g;
@@ -312,7 +337,7 @@ function quoteMaker(text) {
 
 function buttonCreator(text) {
 
-    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `<btn-y href="$1">$2</btn-y>`)
+    text = text.replace(/\[<a\s+href="([^"]+)">&yelloow;([^<]+)<\/a>\]/g, `< btn type="y" href="$1">$2</btn>`)
         .replace(/\[<a\s+href="([^"]+)">&red;([^<]+)<\/a>\]/g, `<btn-r href="$1">$2</btn-r>`)
         .replace(/\[<a\s+href="([^"]+)">([^<]+)<\/a>\]/g, `<btn href="$1">$2</btn>`)
         .replace(/<a\s+href="([^"]+)">&red;\[([^<]+)\]<\/a>/g, `</btn-r name="$2" href="$1">`)
@@ -322,8 +347,13 @@ function buttonCreator(text) {
         .replace(/&grey;\[анкета\[<a href="([^"]+)">&grey;([^"]+)<\/a>&grey;\]\]/g, `<anketa-g href="$1">$2</anketa-g>`);
 
     if (activeFormat === "bs") {
-        text = text.replace(/btn(?!-[y])/g, 'btn-t');
-
+        text = text.replace(/<btn ([^<]+)<\/btn>/g, (match) => {
+            if (!match.includes('type="y"')) {
+                return match.replace('<btn ', '<btn type="t" ');
+            } else {
+                return match;
+            }
+        });
     }
 
     return cleaner(text, ['\/btn', '\/anketa']);
@@ -672,17 +702,9 @@ function escapeHtml(text) {
 }
 
 function highlight(text) {
-    // const regex = /&[a-zA-Z0-9#]+;/g;
-    const regex1 = /(&amp;nbsp;)/g;
-    const regex2 = /(&amp;#8288;)/g;
-    const regex3 = /(&amp;laquo;)/g;
-    const regex4 = /(&amp;raquo;)/g;
-
+    const regex = /(&amp;nbsp;|&amp;#8288;|&amp;laquo;|&amp;raquo;)/g;
     return text
-        .replace(regex1, `<span style="color: #f22b71">$1</span>`)
-        .replace(regex2, `<span style="color: #f22b71;">$1</span>`)
-        .replace(regex3, `<span style="color: #f22b71;">$1</span>`)
-        .replace(regex4, `<span style="color: #f22b71;">$1</span>`);
+        .replace(regex, `<span style="color: #f22b71;">$1</span>`);
 }
 
 function presentation(text) {
