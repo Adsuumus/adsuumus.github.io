@@ -65,13 +65,15 @@ const statecode = [
     {doc: 'Карточка статьи:', state: 'card', shortcode: 'card'},
     {doc: 'Карточки статьи:', state: 'card', shortcode: 'card'},
     {doc: 'Карточка с деталями:', state: 'cardDetails', shortcode: 'card-d'},
+    {doc: 'Карточки с деталями:', state: 'cardDetails', shortcode: 'card-d'},
     {doc: 'Баннер:', state: 'banner', shortcode: 'banner'},
     {doc: 'Блок с картинкой:', state: 'blockImg', shortcode: 'block-img'},
     {doc: 'Квадратные обложки:', state: 'picList', shortcode: 'pic-list'},
+    {doc: 'Квадратная обложка:', state: 'picList', shortcode: 'pic-list'},
     {doc: 'Квадратные обложки (социокнопки):', state: 'picListSoc', shortcode: 'pic-list-s'},
     {doc: 'Квадратные обложки (описания):', state: 'picListDesc', shortcode: 'pic-list-d'},
     {doc: 'Блок:', state: 'block', shortcode: 'block'},
-    {doc: 'Статьи с комментами:', state: 'articleComments', shortcode: 'article-comments'},
+    {doc: 'Статьи с комментами:', state: 'articleComments', shortcode: 'comments-list'},
     {doc: 'Статья с&nbsp;комментами:', state: 'articleComments', shortcode: 'comments-list'},
     {doc: 'Статьи с автором:', state: 'articleAuthor', shortcode: 'author-list'},
     {doc: 'Блок с картинкой:', state: 'blockImage', shortcode: 'block-img'}
@@ -207,24 +209,25 @@ function cleanHtml(text) {
         .replace(/\u00AD/g, "")
         .replace(/\u200b/g, "")
         .replace(/\[<br\s\S]*?>/g, "<br>");
-
-    text = text.replace(/<meta[^>]*>/g, "");
-    text = text.replace(/<br class="Apple-interchange-newline">/g, "");
+    text = text.replace(/<meta[^>]*>/g, "").replace(/<br class="Apple-interchange-newline">/g, "");
 
     text = marker(text);
 
     // чистим b
-   // text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
-    text = text.replace(/<b><\/b>|\n<\/b>/g, "");
+    // ДОМ?
     text = text.replace(/<\/b>$/, "");
     text = text.replace(/<b [^>]*>/g, "");
     text = text.replace(/<b> ([\s\S]*?)<\/b>/g, " <b>$1</b>");
     text = text.replace(/<b>([\s\S]*?) <\/b>/g, "<b>$1</b> ");
-    text = text.replace(/<b><\/b>/g, "");
+    text = text.replace(/<b><\/b>|\n<\/b>/g, "");
 
+    text = text.replace(/<br>/g, "\n");
 
     text = text.replace(/<(p|li|ol|ul)[^>]*>/g, '<$1>');
 
+    text = text.replace(/<p>\s*<\/p>/g, "");
+
+    // ДОМ?
     const list = /<li[^>]*><p[^>]*>(.*?)<\/p><\/li>/g;
     text = text.replace(list, (match, content) => {
         return `<li>${content}</li>`;
@@ -260,21 +263,63 @@ function cleanHtml(text) {
     // text = text.replace(/(<\/h2>)|(<\/p>)|(<br \/>)/g, "$&\n");
 
     //работаем с эмоджи
-
-    //работаем с эмоджи
      text = emoji(text);
-
 
     //чистим б внутри ссылок
     text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
+
+    text = listNumeric(text);
 
     text = quoteMaker(text);
 
     text = emojiSize(text);
 
-    text = listNumeric(text);
-
     return cleaner(text, ['\/label']);
+}
+
+function testDOM(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    let body = doc.body;
+
+    body.querySelectorAll('b').forEach(b => {
+        if (!b.textContent.trim()) {
+            b.remove();
+            return;
+        }
+
+        // Удалить все атрибуты у <b>
+        [...b.attributes].forEach(attr => b.removeAttribute(attr));
+
+        // Убрать пробелы в начале и конце
+        b.textContent = b.textContent.trim();
+
+        // Если между тегами <b> и текстом был пробел, оставим его снаружи
+        if (b.previousSibling && b.previousSibling.nodeType === Node.TEXT_NODE)
+            b.previousSibling.textContent = b.previousSibling.textContent.replace(/\s+$/, ' ');
+
+        if (b.nextSibling && b.nextSibling.nodeType === Node.TEXT_NODE)
+            b.nextSibling.textContent = b.nextSibling.textContent.replace(/^\s+/, ' ');
+    });
+
+    body.querySelectorAll('li > p').forEach(p => {
+        const li = p.closest('li');
+        if (li) {
+            li.innerHTML = p.innerHTML;
+        }
+    });
+
+    body = body.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
+
+    body.querySelectorAll('ol').forEach(ol => {
+        let i = 1;
+        ol.querySelectorAll('li').forEach(li => {
+            li.setAttribute('num', i++);
+        });
+    });
+
+    return body.innerHTML.trim();
 }
 
 function listNumeric(text) {
@@ -330,10 +375,18 @@ function quoteMaker(text) {
         return `<quote>${match}<\/quote>`;
     });
 
-    text = text.replace(/<\/quote>(<br>)+<quote>|<\/i><i>/g, '')
-    text = text.replace(/<p><br>/g, '<p>')
+    text = text.replace(/<\/quote>\s*<quote>|<\/i><i>/g, '')
+
+    text = text.replace(/<\/quote><(ol|ul|el)>([\s\S]*?)<\/\1><quote>/gi, '<$1>$2</$1>');
+
+    text = text.replace(/<quote>([\s\S]*?)<\/quote>/gi, (match) => {
+        match = match.replace(/<i>|<\/i>/g, '');
+        return match;
+    });
+
     return text;
 }
+
 
 function buttonCreator(text) {
 
@@ -693,7 +746,6 @@ function highlightDashes(text) {
 }
 
 function escapeHtml(text) {
-    text = text.replace(/<br>/g, "");
     const map = {
         "&": "&amp;", "<": "&lt;", ">": "&gt;", "=": "&#61;", "/": "&#47;",
     };
@@ -717,5 +769,5 @@ function presentation(text) {
 
     return text.replace(listEnd, `$1\n\n`).replace(listStart, `$1\n`).replace(listInner, `\n$1\n`)
         .replace(base, `\n$1\n\n`)
-        .replace(cleaner, `\n`).replace(/\n<\/quote>/g, '<\/quote>')
+        .replace(cleaner, `\n`).replace(/\n<\/quote>/g, '<\/quote>').replace(/<!--[\s\S]-->/g, '')
 }
