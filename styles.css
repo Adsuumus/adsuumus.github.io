@@ -29,6 +29,11 @@ body {
     width: 50px;
     height: 50px;
     border-radius: 50%;
+    border: 1px solid transparent;
+    background:
+            linear-gradient(white, white) padding-box,
+            linear-gradient(45deg, #ff9a9e, #a1c4fd) border-box;
+    background-clip: padding-box, border-box;
 }
 
 .button {
@@ -46,16 +51,23 @@ body {
     gap: 10px;
 }
 
+.button-container-separator {
+    width: 1px;
+    background-color: #ccc;
+    margin: 0 10px;
+    align-self: stretch;
+}
+
 .radio-button {
     background-color: white;
 }
 
 .radio-button:hover {
-    background-color: #e6e6e6;
+    background: #ededed;
 }
 
 .radio-button.active {
-    background-color: #2e2ee5;
+    background: #2e2ee5;
     color: white;
 }
 

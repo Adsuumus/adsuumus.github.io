@@ -40,8 +40,12 @@ document
     .addEventListener("paste", (event) => {
         event.preventDefault();
 
-        let clipboardData = (event.clipboardData || window.clipboardData).getData("text/html");
-
+        let clipboardData = '';
+        if (activeFormat !== 'min' && activeFormat !== 'demin') {
+            clipboardData = (event.clipboardData || window.clipboardData).getData("text/html");
+        } else {
+            clipboardData = (event.clipboardData || window.clipboardData).getData("text/plain");
+        }
         if (!clipboardData) {
             clipboardData = (event.clipboardData || window.clipboardData).getData("text/plain");
         }
@@ -57,9 +61,52 @@ function updateTypograph() {
     const clipboardData = window.savedDirtyData;
 
     if (clipboardData) {
-        editableDiv.innerHTML = main(clipboardData);
+        if (activeFormat === "min" || activeFormat === "demin") {
+            editableDiv.textContent = main(clipboardData);  // вставляем как текст
+        } else {
+            editableDiv.innerHTML = main(clipboardData);    // допускаем HTML
+        }
     }
 }
+
+function main(html) {
+    if (activeFormat === 'min') {
+        html = minify(html);
+    } else if (activeFormat === 'demin') {
+        html = deminify(html);
+    } else {
+        html = baseWay(html);
+    }
+
+    return html;
+}
+
+function minify(html) {
+    html = html.replace(/[\r\n\s]+/g, ' ')
+        .replace(/ >/g, ">")
+        .replace(/ ">/g, '">')
+        .replace(/ \/>/g, "/>")
+        .replace(/(?<!^)<!--/g, '\n\n<!--');
+    return html;
+}
+
+function deminify(html) {
+
+    // html = html_beautify(html);
+    html = html
+        .replace(/<tr>/g, "\n<tr>")
+        .replace(/<tr/g, "\n<tr")
+        .replace(/<\/tr>/g, "\n</tr>")
+        .replace(/<td>/g, "\n<td>")
+        .replace(/<td/g, "\n<td")
+        .replace(/<table/g, "\n<table")
+        .replace(/<\/td>/g, "\n</td>")
+        .replace(/<div>/g, "\n<div>")
+        .replace(/<\/div>/g, "\n</div>")
+        .replace(/<\/table>/g, "\n</table>");
+    return html;
+}
+
 
 const statecode = [
     {doc: 'Карточка статьи:', state: 'card', shortcode: 'card'},
@@ -82,7 +129,7 @@ const statecode = [
 const states = Object.fromEntries(statecode.map(el => [el.doc, el.state]));
 const shortcodes = Object.fromEntries(statecode.map(el => [el.state, el.shortcode]));
 
-function main(text) {
+function baseWay(text) {
     text = decodeHtml(text);
     text = cleanHtml(text);
 
@@ -115,7 +162,7 @@ function main(text) {
         text = addPadding(text);
     }
 
-    text = presentation(text);
+    text = html_beautify(text);
 
     text = escapeHtml(text);
 
@@ -275,51 +322,6 @@ function cleanHtml(text) {
     text = emojiSize(text);
 
     return cleaner(text, ['\/label']);
-}
-
-function testDOM(html) {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    let body = doc.body;
-
-    body.querySelectorAll('b').forEach(b => {
-        if (!b.textContent.trim()) {
-            b.remove();
-            return;
-        }
-
-        // Удалить все атрибуты у <b>
-        [...b.attributes].forEach(attr => b.removeAttribute(attr));
-
-        // Убрать пробелы в начале и конце
-        b.textContent = b.textContent.trim();
-
-        // Если между тегами <b> и текстом был пробел, оставим его снаружи
-        if (b.previousSibling && b.previousSibling.nodeType === Node.TEXT_NODE)
-            b.previousSibling.textContent = b.previousSibling.textContent.replace(/\s+$/, ' ');
-
-        if (b.nextSibling && b.nextSibling.nodeType === Node.TEXT_NODE)
-            b.nextSibling.textContent = b.nextSibling.textContent.replace(/^\s+/, ' ');
-    });
-
-    body.querySelectorAll('li > p').forEach(p => {
-        const li = p.closest('li');
-        if (li) {
-            li.innerHTML = p.innerHTML;
-        }
-    });
-
-    body = body.replace(/<a([^>]*?)\s+href="([^"]+)".*?>/g, '<a href="$2">');
-
-    body.querySelectorAll('ol').forEach(ol => {
-        let i = 1;
-        ol.querySelectorAll('li').forEach(li => {
-            li.setAttribute('num', i++);
-        });
-    });
-
-    return body.innerHTML.trim();
 }
 
 function listNumeric(text) {
