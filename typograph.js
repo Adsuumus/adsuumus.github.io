@@ -62,9 +62,9 @@ function updateTypograph() {
 
     if (clipboardData) {
         if (activeFormat === "min" || activeFormat === "demin") {
-            editableDiv.textContent = main(clipboardData);  // вставляем как текст
+            editableDiv.textContent = main(clipboardData);
         } else {
-            editableDiv.innerHTML = main(clipboardData);    // допускаем HTML
+            editableDiv.innerHTML = main(clipboardData);
         }
     }
 }
@@ -91,8 +91,6 @@ function minify(html) {
 }
 
 function deminify(html) {
-
-    // html = html_beautify(html);
     html = html
         .replace(/<tr>/g, "\n<tr>")
         .replace(/<tr/g, "\n<tr")
@@ -131,6 +129,8 @@ const shortcodes = Object.fromEntries(statecode.map(el => [el.state, el.shortcod
 
 function baseWay(text) {
     text = decodeHtml(text);
+
+
     text = cleanHtml(text);
 
     const tags = [];
@@ -306,13 +306,8 @@ function cleanHtml(text) {
     // делаем кнопки
     text = buttonCreator(text);
 
-    // сделать это в конце
-    // text = text.replace(/(<\/h2>)|(<\/p>)|(<br \/>)/g, "$&\n");
-
-    //работаем с эмоджи
      text = emoji(text);
 
-    //чистим б внутри ссылок
     text = text.replace(/(?<=\">)<b>(.*?)<\/b>/g, "$1");
 
     text = listNumeric(text);
@@ -322,6 +317,17 @@ function cleanHtml(text) {
     text = emojiSize(text);
 
     return cleaner(text, ['\/label']);
+}
+
+function testDom(html) {
+
+     html = html
+        .replace(/&nbsp;/g, " ")
+        .replace(/^\n+|\n+$/g, "")
+        .replace(/\u00AD/g, "")
+        .replace(/\u200b/g, "")
+
+return html;
 }
 
 function listNumeric(text) {
@@ -340,7 +346,7 @@ function emoji(text) {
 
     text = text.replace(/(<p>\s*<em>[^<]*<\/em>[\s\S]*?<\/p>\s*){2,}/g, "<el>$&</el>");
     text = text.replace(/<\/el><el>/g, "");
-    text = text.replace(/<el>(.*?)<\/el>/g, (match) => {
+    text = text.replace(/<el>([\s\S]*?)<\/el>/g, (match) => {
         return match.replace(/<p>/g, "<li>").replace(/<\/p>/g, "</li>");
     });
     text = text.replace(/<el>(.*?)<\/el>/gs, (elMatch) => {
