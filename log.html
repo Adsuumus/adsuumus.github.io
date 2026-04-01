@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <title>Maya</title>
     <link rel="icon" href="./maya/maya.webp" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -25,6 +26,37 @@
     ></div>
     <div style="padding: 10px">01.04</div>
     <!-- <script src="./maya/beautify-html.min.js"></script> -->
-    <script src="./log.js"></script>
+    <script>
+      window.addEventListener("load", () => {
+        const editableDiv = document.getElementById("typograph-container");
+        editableDiv.focus();
+        const info = getScreenInfo();
+
+        editableDiv.textContent = `Screen: ${info.screen.width}×${info.screen.height}
+Viewport: ${info.viewport.width}×${info.viewport.height}
+DPR: ${info.devicePixelRatio}
+`;
+      });
+
+      const getScreenInfo = () => ({
+        screen: {
+          width: screen.width,
+          height: screen.height,
+          availWidth: screen.availWidth,
+          availHeight: screen.availHeight,
+          colorDepth: screen.colorDepth,
+        },
+        viewport: {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        },
+        window: {
+          outerWidth: window.outerWidth,
+          outerHeight: window.outerHeight,
+        },
+        devicePixelRatio: window.devicePixelRatio,
+        orientation: screen.orientation?.type,
+      });
+    </script>
   </body>
 </html>
