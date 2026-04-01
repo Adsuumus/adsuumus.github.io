@@ -24,7 +24,6 @@
         box-shadow: none !important;
       "
     ></div>
-    <div style="padding: 10px">01.04</div>
     <!-- <script src="./maya/beautify-html.min.js"></script> -->
     <script>
       window.addEventListener("load", () => {
@@ -56,6 +55,45 @@ DPR: ${info.devicePixelRatio}
         },
         devicePixelRatio: window.devicePixelRatio,
         orientation: screen.orientation?.type,
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const container = document.getElementById("typograph-container");
+
+        if (container) {
+          container.style.cursor = "pointer";
+
+          container.addEventListener("click", async () => {
+            const textToCopy = container.textContent;
+
+            try {
+              await navigator.clipboard.writeText(textToCopy);
+
+              const msg = document.createElement("div");
+              msg.textContent = "Скопировано!";
+              msg.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #4caf50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 1000;
+            animation: fadeOut 2s forwards;
+          `;
+
+              document.body.appendChild(msg);
+
+              setTimeout(() => msg.remove(), 2000);
+            } catch (err) {
+              console.error("Ошибка:", err);
+              alert("Не удалось скопировать");
+            }
+          });
+        }
       });
     </script>
   </body>
