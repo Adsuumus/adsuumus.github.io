@@ -10,7 +10,10 @@
   <body>
     <div class="header">
       <img src="./maya/maya.webp" alt="" class="icon" />
-      <div class="buttons-container">Log</div>
+      <div class="buttons-container">
+        Log:
+        <div class="button-container"></div>
+      </div>
     </div>
     <div
       id="typograph-container"
@@ -59,6 +62,7 @@ DPR: ${info.devicePixelRatio}
 
       document.addEventListener("DOMContentLoaded", () => {
         const container = document.getElementById("typograph-container");
+        const buttonContainer = document.querySelector(".button-container");
 
         if (container) {
           container.style.cursor = "pointer";
@@ -66,31 +70,13 @@ DPR: ${info.devicePixelRatio}
           container.addEventListener("click", async () => {
             const textToCopy = container.textContent;
 
-            try {
-              await navigator.clipboard.writeText(textToCopy);
+            await navigator.clipboard.writeText(textToCopy);
 
-              const msg = document.createElement("div");
-              msg.textContent = "Скопировано!";
-              msg.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #4caf50;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 14px;
-            z-index: 1000;
-            animation: fadeOut 2s forwards;
-          `;
-
-              document.body.appendChild(msg);
-
-              setTimeout(() => msg.remove(), 2000);
-            } catch (err) {
-              console.error("Ошибка:", err);
-              alert("Не удалось скопировать");
+            const msg = document.createElement("div");
+            msg.textContent = "copied!";
+            if (buttonContainer) {
+              buttonContainer.innerHTML = "";
+              buttonContainer.appendChild(msg);
             }
           });
         }
