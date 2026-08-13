@@ -30,7 +30,7 @@
 
 [Майя](https://adsuumus.github.io/)
 
-[Кроппер](https://adsuumus.github.io/crp)
+[Кроппер](https://adsuumus.github.io/?cropper)
 
 ## Использование
 
