@@ -1,4 +1,3 @@
-
 * {
     margin: 0;
     padding: 0;
@@ -19,11 +18,23 @@ body {
 
 .header {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 20px;
-    padding: 15px 0 15px 0;
+    padding: 15px 0;
 }
+
+.buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+}
+
+.crp-button {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
 
 .icon {
     width: 50px;
@@ -45,11 +56,6 @@ body {
     transition: ease .1s;
 }
 
-.buttons-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
 
 .button-container-separator {
     width: 1px;
@@ -59,12 +65,23 @@ body {
 }
 
 .radio-button {
-    background-color: white;
+    background-color: white;  
 }
 
 .radio-button:hover {
     background: #ededed;
 }
+
+.crp-button {
+    background-color: white;  
+}
+
+.crp-button:hover {
+   background: linear-gradient(135deg, #6366f1, #8b5cf6);
+   color: white
+}
+
+
 
 .radio-button.active {
     background: #2e2ee5;

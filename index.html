@@ -1,40 +1,13 @@
-<!DOCTYPE html>
-<html lang="ru">
+<!doctype html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./src/assets/maya.webp" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Maya</title>
-    <link
-      rel="icon"
-      href="./maya/maya.webp"
-    />
-    <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="header">
-      <img
-        src="./maya/maya.webp"
-        alt=""
-        class="icon"
-      />
-      <div class="buttons-container">
-        <button class="button radio-button" data-value="tj">Т—Ж</button>
-        <button class="button radio-button" data-value="bs">БС</button>
-        <button class="button radio-button" data-value="amp">АМП</button>
-        <button class="button radio-button" data-value="easy">Выпуск</button>
-        <div class="button-container-separator"></div>
-        <button class="button radio-button" data-value="min">Минификатор</button>
-        <button class="button radio-button" data-value="demin">Разминификатор</button>
-      </div>
-    </div>
-    <div
-      id="typograph-container"
-      contenteditable="true"
-      spellcheck="false"
-      autocorrect="off"
-      class="text-container"
-    ></div>
-    <div style="padding: 10px">24.11</div>
-    <script src="./maya/beautify-html.min.js"></script>
-    <script src="./typograph.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
