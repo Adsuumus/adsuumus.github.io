@@ -1,16 +1,41 @@
-# React + Vite
+# Майя и Кроппер
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[Майя](https://adsuumus.github.io/) — типограф на JS с функцией расшифровки тегов Google Docs.
 
-Currently, two official plugins are available:
+[Кроппер](https://adsuumus.github.io/crp) — инструмент для создания круглых аватарок и накладывания шума.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Возможности
 
-## React Compiler
+Майя типографирует текст:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Склеивает тире с предыдущим словом
+- Словосочетания с дефисом, где одно из слов короче 4 символов, склеиваются с дефисом
+- Знаки типа ₽ и °C и сокращения вроде «млн» и «трлн» приклеиваются к предыдущему слову с помощью &nbsp;
+- Трехбуквенные предлоги (например: «для», «при») приклеивает к следующему слову.
+- Неразрывный пробел будет поставлен после коротких слов и сокращений (на русском языке). Например: «ул.», «не», «да», «из», «мы» и др,, как с запятой, так и без нее
+- Числа, в том числе с запятой, приклеиваются к следующему слову
+- Майя вставляет ворд джойнеры в имена месяцев и дней недели, чтобы замаскировать от почтовиков, которые превращают их в ссылки для календаря
 
-## Expanding the ESLint configuration
+Майя определяет условные обозначения в тексте и выдает шорткоды. Например:
+\[Ссылка, окруженная квадратными скобками\] – превращается в кнопку в шорткодах.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Добавлены функции минификатора и разминификатора.
+
+Кроппер автоматически обрезает картинки, вставленные в него из буфера. Формат: 200х200p.
+На картинки накладывается шум, который помогает избежать инверсии картинки в Гмейле.
+Шум можно регулировать шкалой шума. По умолчанию установлено минимальное оптимальное значение.
+Картинки можно загружать и скачивать массово.
+
+## Запуск
+
+[Майя](https://adsuumus.github.io/)
+
+[Кроппер](https://adsuumus.github.io/crp)
+
+## Использование
+
+В Майе нужно сперва выбрать редакцию, с которой мы будем работать. От этого зависят теги для ссылок и добавленные автоматически отступы (будут как в ДС редакции).
+
+Разминификатор работает только с табличной версткой. Минификатор работает с любой строкой.
+
+Чтобы обрезать картинку в Кроппере, нужно вставить ее через Ctrl+V и отрегулировать шум.
